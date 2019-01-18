@@ -48,7 +48,10 @@ DECLARE
 SET @CurrentDate = (SELECT GETDATE())
 SET @ServerName = (SELECT @@SERVERNAME)
 PRINT '--##  SQL Server Configuration Report - Version '+@ScriptVersion
---PRINT '---------------------------------------------------------------------'
+PRINT ''
+PRINT ''
+---------------------------------------------------------------------
+PRINT '--##  SQL Server Report Date'
 SELECT @ServerName "Server Name", @CurrentDate "Report Date"
 --PRINT 'Report executed on '+@ServerName+' SQL Server at '+@CurrentDate
 PRINT ' '
@@ -223,6 +226,10 @@ UNION SELECT 'Number of Link Servers', @LinkServers
 --UNION SELECT 'OS Version', RIGHT(@@version, LEN(@@version)- 3 -charindex (' ON ', @@VERSION))
 --UNION SELECT 'OS Version', RTRIM(@@VERSION)
 ------------------------------------------------------------------------
+PRINT '--##  All Server Logins'
+--exec sp_helplogins
+select * from sys.server_principals
+
 PRINT '--##  SysAdmin Members'
 IF (SELECT COUNT(*) FROM sys.server_principals) = 0
 BEGIN
@@ -252,6 +259,27 @@ SELECT CONVERT (NVARCHAR(20),r.name) AS'Role'
  WHERE	(r.type ='R')and(r.name='serveradmin')
  END
 PRINT ' '
+------------------------------------------------------------------------
+PRINT '--##  permissions of the users for each database'
+DECLARE @DB_USers TABLE(DBName sysname, UserName sysname, LoginType sysname, AssociatedRole varchar(max),create_date datetime,modify_date datetime)
+INSERT @DB_USers EXEC sp_MSforeachdb'
+use [?]
+SELECT ''?'' AS DB_Name,
+case prin.name when ''dbo'' then prin.name + '' (''+ (select SUSER_SNAME(owner_sid) from master.sys.databases where name =''?'') + '')'' else prin.name end AS UserName,
+prin.type_desc AS LoginType,
+isnull(USER_NAME(mem.role_principal_id),'''') AS AssociatedRole ,create_date,modify_date
+FROM sys.database_principals prin
+LEFT OUTER JOIN sys.database_role_members mem ON prin.principal_id=mem.member_principal_id
+WHERE prin.sid IS NOT NULL and prin.sid NOT IN (0x00) and
+prin.is_fixed_role <> 1 AND prin.name NOT LIKE ''##%'''
+SELECT dbname,username ,logintype ,create_date ,modify_date ,STUFF((SELECT ',' + CONVERT(VARCHAR(500),associatedrole)
+FROM @DB_USers user2 WHERE user1.DBName=user2.DBName AND user1.UserName=user2.UserName FOR XML PATH('') ),1,1,'') AS Permissions_user
+FROM @DB_USers user1 GROUP BY dbname,username ,logintype ,create_date ,modify_date ORDER BY DBName,username
+GO
+------------------------------------------------------------------------
+PRINT '--##  List all System and Mirroring endpoints'
+select * from sys.endpoints 
+GO
 ------------------------------------------------------------------------
 PRINT '--##  Configuration setting' 
 SELECT [name] as 'Configuration Setting' ,(CONVERT (CHAR(20),[value_in_use] )) as 'Value in Use' FROM #SQL_Server_Settings
@@ -537,10 +565,37 @@ SELECT
   --,is_remote_proc_transaction_promotion_enabled 
   --,modify_date
 FROM #LinkInfo
+
 IF @@rowcount = 0 
 BEGIN 
 		PRINT '** No link server connections Detection of ** '
 END
+ELSE
+BEGIN
+	PRINT '--## List all Linked Servers and their associated login'
+	SELECT ss.server_id ,ss.name ,'Server ' = Case ss.Server_id   when 0 then 'Current Server'   else 'Remote Server'   end
+	,ss.data_source,ss.product   ,ss.provider  ,ss.catalog  ,'Local Login ' = case sl.uses_self_credential   when 1 then 'Uses Self Credentials'
+	else ssp.name end ,'Remote Login Name' = sl.remote_name ,'RPC Out Enabled'    = case ss.is_rpc_out_enabled when 1 then 'True'
+	else 'False' end ,'Data Access Enabled' = case ss.is_data_access_enabled when 1 then 'True' else 'False' end
+	,ss.modify_date FROM sys.Servers ss  
+	LEFT JOIN sys.linked_logins sl ON ss.server_id = sl.server_id
+	LEFT JOIN sys.server_principals ssp ON ssp.principal_id = sl.local_principal_id
+END
+------------------------------------------------------------------------
+PRINT '--## Script out the Logon Triggers of the server, if any exists'
+SELECT SSM.definition FROM sys.server_triggers AS ST JOIN sys.server_sql_modules AS SSM ON ST.object_id = SSM.object_id
+------------------------------------------------------------------------
+PRINT 'REPLICATION - List Publication or Subscription articles'
+IF EXISTS (SELECT 1 
+           FROM INFORMATION_SCHEMA.TABLES 
+           WHERE TABLE_TYPE='BASE TABLE' 
+           AND TABLE_NAME='sysextendedarticlesview') 
+(SELECT  sub.srvname,  pub.name, art.name, art.dest_table,art.dest_owner
+FROM sysextendedarticlesview art
+inner join syspublications pub on (art.pubid = pub.pubid)
+inner join syssubscriptions sub on (sub.artid = art.artid))
+ELSE SELECT 'No Publication or Subcsription articles were found'
+GO
 ------------------------------------------------------------------------
 PRINT ' ';
 PRINT '--## Database Collation type'
@@ -557,6 +612,7 @@ SELECT
 	, CONVERT(nvarchar(35), COLLATION_NAME) as 'Collation Type'
 FROM #Collation
 PRINT ' ';
+
 ------------------------------------------------------------------------
 PRINT '--## Database Hard Drive Space Available'   
 
@@ -667,6 +723,47 @@ SELECT CONVERT(nvarchar(75), name) AS 'Disabled SQL Jobs' FROM #Disabled_Jobs
 		PRINT '** No Disabled Job Information ** '
 	END;
 PRINT ' '
+------------------------------------------------------------------------
+PRINT '--## SQL Server Agent Job Step Info'
+SELECT 
+    j.[job_id] AS [JobID]
+    , j.[name] AS [JobName]
+    , [svr].[name] AS [OriginatingServerName]
+    , [js].[step_id] AS [JobStartStepNo]
+    , [js].[step_name] AS [JobStartStepName]
+    , CASE j.[delete_level]
+        WHEN 0 THEN 'Never'
+        WHEN 1 THEN 'On Success'
+        WHEN 2 THEN 'On Failure'
+        WHEN 3 THEN 'On Completion'
+      END AS [JobDeletionCriterion]
+	 , js.step_id
+	 , js.step_name
+	 , js.subsystem
+	 , js.command
+	 , js.on_success_action
+	 , js.on_fail_step_id
+	 , js.database_name
+	 , js.last_run_date
+FROM 
+    [msdb].[dbo].[sysjobs] AS j	
+	LEFT JOIN [msdb].[sys].[servers] AS [svr]				ON j.[originating_server_id] = [svr].[server_id]
+    LEFT JOIN [msdb].[dbo].[sysjobsteps] AS [js]            ON j.job_id = [js].[job_id] --AND j.[start_step_id] = [js].[step_id]
+WHERE j.[name] not in ('syspolicy_purge_history')
+ORDER BY [JobName], js.step_id
+GO
+
+
+------------------------------------------------------------------------
+PRINT '--## List of SQL Server Agent - Alerts'
+select * from  msdb.dbo.sysalerts 
+------------------------------------------------------------------------
+PRINT '--## List of SQL Server Agent - Operators'
+SELECT name, email_address, enabled FROM MSDB.dbo.sysoperators ORDER BY name
+------------------------------------------------------------------------
+PRINT '--## List of SSIS packages in MSDB'
+select name, description, createdate from msdb..sysssispackages where description not like 'System Data Collector Package'
+GO
 ------------------------------------------------------------------------
 PRINT '--## SQL Mail Information'
 CREATE TABLE #Database_Mail_Details
@@ -862,6 +959,25 @@ ELSE
 			, '' AS 'Description'
 	END
 ------------------------------------------------------------------------
+PRINT '--## SQL Server base folder & Port Info>'
+select *
+from sys.dm_server_registry
+where (
+		(registry_key = 'HKLM\SYSTEM\CurrentControlSet\Services\MSSQLSERVER' and value_name = 'ImagePath')
+			or (registry_key like '%SuperSocketNetLib\Tcp\IP%')
+	)
+	and registry_key not in
+	(
+		SELECT registry_key
+		FROM sys.dm_server_registry
+		WHERE registry_key like '%SuperSocketNetLib\Tcp\IP%' AND value_name = 'Enabled' and value_data = 0
+	)
+GO
+------------------------------------------------------------------------
+PRINT '--## SQL Server Fulltext Info'
+SELECT * from sys.fulltext_indexes ;
+GO
+------------------------------------------------------------------------
 -- Performing clean up
 DROP TABLE #KERBINFO;
 DROP TABLE #nodes;
@@ -883,7 +999,5 @@ DROP TABLE #LogShipping;
 DROP TABLE #Databases_Details;
 
 GO
-------------------------------------------------------------------------
---PRINT ' '
---PRINT '		End of SQL Server Configuration Report'
-GO
+
+
