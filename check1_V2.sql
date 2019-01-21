@@ -597,19 +597,21 @@ SELECT  CONVERT(nvarchar(45), sys.databases.name) as 'Database Name'
     ON sys.databases.database_id=sys.master_files.database_id
 GROUP BY sys.databases.name
 ORDER BY sys.databases.name 
-
+GO
 ------------------------------------------------------------------------
-PRINT '--## OS Hard Drive Space Available'   
+PRINT '--## OS Hard Drive Space Available'
+
 SELECT Drive AS 'Drive Letter'
-           ,[MB free]  AS 'Free Disk Space (Megabytes)'
-           FROM #HD_space
-    IF @@rowcount = 0 
-    BEGIN 
-        PRINT '** No Hard Drive Information ** '
-    END
+        ,[MB free]  AS 'Free Disk Space (Megabytes)'
+        FROM #HD_space
+IF @@rowcount = 0 
+BEGIN 
+    PRINT '** No Hard Drive Information ** '
+END
 
 ------------------------------------------------------------------------
 PRINT '--## Database Information'
+
 SELECT 
      D.database_id
     ,D.[name]    
@@ -620,9 +622,9 @@ SELECT
     ,D.[recovery_model_desc]
         INTO #Databases_Details
 FROM SYS.DATABASES D 
-INNER JOIN sys.master_files S
-ON D.database_id= S.database_id
+    INNER JOIN sys.master_files S       ON D.database_id= S.database_id
 WHERE s.file_id = 1 
+GO
 
 SELECT 
      database_id AS 'Database ID'
@@ -632,6 +634,8 @@ SELECT
     ,CONVERT(nvarchar(10), [state_desc]) AS 'Status'
     ,CONVERT(nvarchar(10), [recovery_model_desc]) AS 'Recovery Model'
 FROM #Databases_Details;
+GO
+
 ------------------------------------------------------------------------
 PRINT '--## Database Backup Information'
 
@@ -644,10 +648,11 @@ SELECT
     , MAX(backup_finish_date)
     , 101)
     , 'NEVER') as LastBackupDate
-INTO #Last_Backup_Dates FROM master.dbo.sysdatabases B 
-LEFT OUTER JOIN msdb.dbo.backupset A 
-ON A.database_name = B.name AND A.type = 'D' 
+        INTO #Last_Backup_Dates
+FROM master.dbo.sysdatabases B 
+    LEFT OUTER JOIN msdb.dbo.backupset A        ON A.database_name = B.name AND A.type = 'D' 
 GROUP BY B.Name 
+HAVING B.name not in ('tempdb')
 ORDER BY B.name;
 
 SELECT 
@@ -655,10 +660,10 @@ SELECT
     ,DaysSinceLastBackup AS 'Days Since Backup Date'
     ,LastBackupDate AS 'Last Date Backed Up'
  FROM #Last_Backup_Dates
-    IF @@rowcount = 0 
-    BEGIN 
-        PRINT '** No SQL Backup Information ** '
-    END;
+    -- IF @@rowcount = 0 
+    -- BEGIN 
+    --     PRINT '** No SQL Backup Information ** '
+    -- END;
 ------------------------------------------------------------------------
 PRINT '--## SQL Job Status'
 SELECT name
