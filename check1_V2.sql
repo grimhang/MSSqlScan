@@ -25,7 +25,8 @@ DECLARE
 	, @KERB NVARCHAR(50) -- Is Kerberos used or not
 	, @DomainName NVARCHAR(50) -- Name of Domain
 	, @IP NVARCHAR(20)  -- IP address used by SQL Server
-	, @InstallDate NVARCHAR(20) -- Installation date of SQL Server
+	--, @InstallDate NVARCHAR(20) -- Installation date of SQL Server
+	, @InstallDate datetime -- Installation date of SQL Server
 	, @ProductVersion NVARCHAR(30) -- Production version
 	, @MachineName NVARCHAR(30) -- Server name
 	, @ServerName NVARCHAR(30) -- SQL Server name
@@ -45,14 +46,14 @@ DECLARE
 	, @TraceFileLocation VARCHAR(100) -- location of trace files
 	, @LinkServers VARCHAR(2) -- Number of linked servers found
 
-SET @CurrentDate = (SELECT GETDATE())
+SET @CurrentDate = CONVERT(varchar(100), GETDATE(), 120)
 SET @ServerName = (SELECT @@SERVERNAME)
-PRINT '--##  SQL Server Configuration Report - Version '+@ScriptVersion
-PRINT ''
-PRINT ''
+-- PRINT '--##  SQL Server Configuration Report - Version '+@ScriptVersion
+-- PRINT ''
+-- PRINT ''
 ---------------------------------------------------------------------
 PRINT '--##  SQL Server Report Date'
-SELECT @ServerName "Server Name", @CurrentDate "Report Date"
+SELECT @ServerName "Server Name", @CurrentDate "Report Date - Version 2.0"
 --PRINT 'Report executed on '+@ServerName+' SQL Server at '+@CurrentDate
 PRINT ' '
 
@@ -198,7 +199,7 @@ SET @TraceFileLocation = (SELECT REPLACE(CONVERT(VARCHAR(100),SERVERPROPERTY('Er
 SET @LinkServers = (SELECT COUNT(*) FROM sys.servers WHERE is_linked ='1')
 ------------------------------------------------------------------------
 SELECT 'SQLServerName\InstanceName' as KeyName, @SQLServerName KeyVal
-UNION SELECT 'Install Date' , CONVERT(varchar(200), @InstallDate, 121)
+UNION SELECT 'Install Date' , CONVERT(varchar(200), @InstallDate, 120)
 UNION SELECT 'Machine Name' , @MachineName
 UNION SELECT 'Instance Name' , @InstanceName
 UNION SELECT 'SQL Server Edition and BIT Level', @EDITION
