@@ -59,8 +59,8 @@ PRINT ' '
 --> SQL Server Settings <--
 --PRINT '--##Loading sp_configure details'
 --PRINT ' '
-EXEC sp_configure 'show advanced options', 1;
-RECONFIGURE;
+-- EXEC sp_configure 'show advanced options', 1;
+-- RECONFIGURE;
 
 SELECT 
          [name]
@@ -72,8 +72,8 @@ SELECT
 INTO #SQL_Server_Settings
 FROM master.sys.configurations;		
 
-EXEC sp_configure 'show advanced options', 0;
-RECONFIGURE;
+-- EXEC sp_configure 'show advanced options', 0;
+-- RECONFIGURE;
 --PRINT ' '
 --PRINT '--##sp_configure details loaded'
 PRINT ' ';
