@@ -49,17 +49,15 @@ DECLARE
 SET @CurrentDate = CONVERT(varchar(100), GETDATE(), 120)
 SET @ServerName = (SELECT @@SERVERNAME)
 -- PRINT '--##  SQL Server Configuration Report - Version '+@ScriptVersion
--- PRINT ''
--- PRINT ''
+
 ---------------------------------------------------------------------
 PRINT '--##  SQL Server Report Date'
 SELECT @ServerName "Server Name", @CurrentDate "Report Date - Version 2.0"
 --PRINT 'Report executed on '+@ServerName+' SQL Server at '+@CurrentDate
-PRINT ' '
 
 --> SQL Server Settings <--
 --PRINT '--##Loading sp_configure details'
---PRINT ' '
+
 -- EXEC sp_configure 'show advanced options', 1;
 -- RECONFIGURE;
 
@@ -75,9 +73,8 @@ FROM master.sys.configurations;
 
 -- EXEC sp_configure 'show advanced options', 0;
 -- RECONFIGURE;
---PRINT ' '
+
 --PRINT '--##sp_configure details loaded'
-PRINT ' ';
 
 -- Detecting setting
 ----------------------------------------------------------------
@@ -243,7 +240,7 @@ BEGIN
 	FROM sys.server_principals
 	WHERE IS_SRVROLEMEMBER('sysadmin', name) = 1
 END
-PRINT ' '
+
 ------------------------------------------------------------------------
 PRINT '--##  ServerAdmin Members'
 IF (SELECT COUNT(*) FROM sys.server_principals WHERE (type ='R') and (name='serveradmin')) = 0
@@ -259,7 +256,7 @@ SELECT CONVERT (NVARCHAR(20),r.name) AS'Role'
   JOIN	sys.server_principals p ON	p.principal_id = m.member_principal_id
  WHERE	(r.type ='R')and(r.name='serveradmin')
  END
-PRINT ' '
+
 ------------------------------------------------------------------------
 PRINT '--##  permissions of the users for each database'
 DECLARE @DB_USers TABLE(DBName sysname, UserName sysname, LoginType sysname, AssociatedRole varchar(max),create_date datetime,modify_date datetime)
@@ -299,7 +296,7 @@ BEGIN
 	FROM sys.procedures
 	WHERE is_auto_executed = 1
 END
-PRINT ' ';
+
 ------------------------------------------------------------------------
 PRINT '--##  SQL Service Status' 
 --> SQL Server Services Status <--
@@ -534,7 +531,7 @@ SELECT CONVERT(NVARCHAR(3), database_id) AS 'Database ID'
 			, CONVERT(NVARCHAR(100), physical_name) AS 'Physical Location'
 			, CONVERT(NVARCHAR(16), type_desc) AS 'Type'
 FROM sys.master_files 
-PRINT ' '
+
 ------------------------------------------------------------------------
 PRINT '--## Link Servers'
 SELECT * INTO #LinkInfo  FROM sys.servers WHERE is_linked ='1'
@@ -598,21 +595,21 @@ inner join syssubscriptions sub on (sub.artid = art.artid))
 ELSE SELECT 'No Publication or Subcsription articles were found'
 GO
 ------------------------------------------------------------------------
-PRINT ' ';
+
 PRINT '--## Database Collation type'
---PRINT ' '
+
 --PRINT ' Case sensitivity Descriptions'
 --PRINT ' Case Insensitive = CI				Case Sensitive = CS'
 --PRINT ' Accent Insensitive = AI			Accent Sensitive = AS'
 --PRINT ' Kanatype Insensitive = null		Kanatype Sensitive = KS'
 --PRINT ' Width Insensitive = null			Width Sensitive = WS'
---PRINT ' ';
+;
 SELECT NAME, COLLATION_NAME INTO #Collation FROM sys.Databases ORDER BY DATABASE_ID ASC;
 SELECT 
       CONVERT(nvarchar(35), name) as 'Database Name'
 	, CONVERT(nvarchar(35), COLLATION_NAME) as 'Collation Type'
 FROM #Collation
-PRINT ' ';
+
 
 ------------------------------------------------------------------------
 PRINT '--## Database Hard Drive Space Available'   
@@ -641,7 +638,7 @@ SELECT Drive AS 'Drive Letter'
 	BEGIN 
 		PRINT '** No Hard Drive Information ** '
 	END
-PRINT ' '
+
 ------------------------------------------------------------------------
 PRINT '--## Database Information'
 SELECT 
@@ -668,7 +665,7 @@ SELECT
 FROM #Databases_Details;
 ------------------------------------------------------------------------
 PRINT '--## Database Backup Information'
---PRINT ' '
+
 SELECT 	
 	B.name as Database_Name
 	, ISNULL(STR(ABS(DATEDIFF(day, GetDate()
@@ -695,7 +692,6 @@ SELECT
 	END;
 ------------------------------------------------------------------------
 PRINT '--## SQL Job Status'
---PRINT ' '
 SELECT name
 	INTO #Failed_SQL_Jobs
 FROM msdb.dbo.sysjobs A, msdb.dbo.sysjobservers B 
@@ -704,7 +700,6 @@ WHERE A.job_id = B.job_id AND B.last_run_outcome = 0 ;
 IF (SELECT COUNT(*) FROM #Failed_SQL_Jobs) = 0 
 BEGIN 
 	--PRINT '** No SQL Job Information ** '
-	--PRINT ' '
 	SELECT '' AS 'SQL Job Name' FROM #Failed_SQL_Jobs
 END
 ELSE
@@ -723,7 +718,7 @@ SELECT CONVERT(nvarchar(75), name) AS 'Disabled SQL Jobs' FROM #Disabled_Jobs
 	BEGIN 
 		PRINT '** No Disabled Job Information ** '
 	END;
-PRINT ' '
+
 ------------------------------------------------------------------------
 PRINT '--## SQL Server Agent Job Step Info'
 SELECT 
@@ -800,7 +795,6 @@ ELSE
 BEGIN
 	SELECT [Status] AS 'Database Mail Service Status' FROM #Database_Mail_Details
 END;
-PRINT ' '
 
 SELECT 
 	principal_id  
@@ -816,10 +810,9 @@ FROM #Database_Mail_Details2
 --	SELECT * FROM #Database_Mail_Details2 WHERE 1 =0
 
 --END;
---PRINT ' '
+
 ------------------------------------------------------------------------
 PRINT '--## Database Mirroring Status'
---PRINT ' '
 SELECT DB.name,
 CASE
     WHEN MIRROR.mirroring_state is NULL THEN 'Database Mirroring not configured and/or set'
@@ -832,7 +825,7 @@ ON DB.database_id=MIRROR.database_id WHERE DB.database_id > 4 ORDER BY DB.NAME;
 IF (SELECT COUNT(*) FROM #Database_Mirror_Stats) = 0
 BEGIN
 		PRINT ' ** No Mirroring Information Detection of **'
-		PRINT ' '
+		
 END
 ELSE
 BEGIN
@@ -885,7 +878,7 @@ ELSE
 BEGIN
 	SELECT * FROM #DB_Mirror_Details
 END
-PRINT ' '
+
 ------------------------------------------------------------------------
 PRINT '--## Database Log Shipping Status'
 CREATE TABLE #LogShipping
@@ -916,11 +909,9 @@ IF (SELECT COUNT(*) FROM #LogShipping) = 0
 	BEGIN
 		SELECT * FROM #LogShipping
 	END
-PRINT ' ';
-------------------------------------------------------------------------
-PRINT '--##Report Server (SSRS) Reports Information <--'
---PRINT ' '
 
+------------------------------------------------------------------------
+PRINT '--##Report Server (SSRS) Reports Information'
 IF EXISTS (SELECT name FROM sys.databases where name = 'ReportServer')
 BEGIN
 IF (SELECT COUNT(*) FROM reportserver.dbo.Catalog) = 0
