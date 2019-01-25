@@ -92,7 +92,7 @@ SET @EDITION = (SELECT CONVERT(char(30), SERVERPROPERTY('EDITION')))
 SET @ProductLevel = (SELECT CONVERT(char(30), SERVERPROPERTY('ProductLevel')))
 SET @physical_CPU_Count = (SELECT cpu_count FROM sys.dm_os_sys_info)
 ------------------------------------------------------------------------
-SET @ProductVersion = (SELECT CONVERT(char(30), SERVERPROPERTY('ProductVersion')))
+SET @ProductVersion = CONVERT(varchar(30), SERVERPROPERTY('ProductVersion'))
 IF @ProductVersion LIKE '6.5%' SET @ProductVersion =  'SQL Server 6.5'
 IF @ProductVersion LIKE '7.0%' SET @ProductVersion =  'SQL Server 7'
 IF @ProductVersion LIKE '8.0%' SET @ProductVersion =  'SQL Server 2000'
@@ -217,6 +217,7 @@ UNION SELECT 'Security Mode', @ISIntegratedSecurityOnly
 UNION SELECT 'Audit Level', @AuditLvltxt
 UNION SELECT 'User Mode', @ISSingleUser
 UNION SELECT 'SQL Server Collation Type', @COLLATION
+--UNION SELECT 'SQL Server Engine Location', REPLACE(@ErrorLogLocation, '\Log\', '\Binn\')
 UNION SELECT 'SQL Server Errorlog Location', @ErrorLogLocation
 UNION SELECT 'SQL Server Default Trace Location', @TraceFileLocation
 UNION SELECT 'Number of Link Servers', @LinkServers
@@ -225,7 +226,7 @@ UNION SELECT 'Number of Link Servers', @LinkServers
 ------------------------------------------------------------------------
 PRINT '--##  Server Logins'
 
-select * from sys.server_principals where type = 'S' order by name
+select * from sys.server_principals where type in ('S', 'U') order by name
 ------------------------------------------------------------------------
 PRINT '--##  SysAdmin Members'
 
@@ -266,12 +267,13 @@ SELECT CONVERT (NVARCHAR(20),r.name) AS'Role'
  END
 
 ------------------------------------------------------------------------
-PRINT '--##  Configuration setting' 
+PRINT '--##  MS-SQL Server Configuration setting' 
 
 SELECT [name] as 'Configuration Setting' ,(CONVERT (CHAR(20),[value_in_use] )) as 'Value in Use'
 FROM #SQL_Server_Settings
 ------------------------------------------------------------------------
-PRINT '--## Detection of code that automatically executes on startup'
+PRINT '--##  Detection of code that automatically executes on startup'
+
 SELECT CONVERT (NVARCHAR(35), name) AS 'Name'
                 , CONVERT (NVARCHAR(25), type_desc) AS 'Type'
                 ,  create_date AS 'Created Date'
@@ -520,13 +522,16 @@ SELECT ServerName as 'SQL Server\Instance Name'
             , StatusDateTime as 'Status Date\Time'
             FROM  #ServicesServiceStatus;        
 ------------------------------------------------------------------------
-PRINT '--## Location of Database files'
+PRINT '--##  Location of Database files'
 
 SELECT CONVERT(NVARCHAR(3), database_id) AS 'Database ID'
-            , CONVERT(NVARCHAR(45), name) AS 'Database Name'
+            , DB_NAME(database_id) AS 'Database Name'
+            , CONVERT(NVARCHAR(45), name) AS 'DB Logical Name'            
             , CONVERT(NVARCHAR(100), physical_name) AS 'Physical Location'
             , CONVERT(NVARCHAR(16), type_desc) AS 'Type'
+            , CONVERT(numeric(10, 2), size * 8 / 1024.0) "FileSize(MB)"
 FROM sys.master_files 
+GO
 ------------------------------------------------------------------------
 PRINT '--##  permissions of the users for each database'
 DECLARE @DB_USers TABLE(DBName sysname, UserName sysname, LoginType sysname, AssociatedRole varchar(max),create_date datetime,modify_date datetime)
@@ -552,7 +557,7 @@ ORDER BY DBName,username
 GO
 
 ------------------------------------------------------------------------
-PRINT '--## Database Collation type'
+PRINT '--##  Database Collation type'
 
 --PRINT ' Case sensitivity Descriptions'
 --PRINT ' Case Insensitive = CI                Case Sensitive = CS'
@@ -581,7 +586,7 @@ SELECT
 FROM Collation_CTE
 GO
 ------------------------------------------------------------------------
-PRINT '--## Database Hard Drive Space Available'   
+PRINT '--##  Database Hard Drive Space Available'   
 
 CREATE TABLE #HD_space
     (Drive varchar(2) NOT NULL,
@@ -599,7 +604,7 @@ GROUP BY sys.databases.name
 ORDER BY sys.databases.name 
 GO
 ------------------------------------------------------------------------
-PRINT '--## OS Hard Drive Space Available'
+PRINT '--##  OS Hard Drive Space Available'
 
 SELECT Drive AS 'Drive Letter'
         ,[MB free]  AS 'Free Disk Space (Megabytes)'
@@ -610,7 +615,7 @@ BEGIN
 END
 
 ------------------------------------------------------------------------
-PRINT '--## Database Information'
+PRINT '--##  Database Information'
 
 SELECT 
      D.database_id
@@ -637,7 +642,7 @@ FROM #Databases_Details;
 GO
 
 ------------------------------------------------------------------------
-PRINT '--## Database Backup Information'
+PRINT '--##  Database Backup Information'
 
 SELECT     
     B.name as Database_Name
@@ -665,36 +670,41 @@ SELECT
     --     PRINT '** No SQL Backup Information ** '
     -- END;
 ------------------------------------------------------------------------
-PRINT '--## SQL Job Status'
-SELECT name
-    INTO #Failed_SQL_Jobs
-FROM msdb.dbo.sysjobs A, msdb.dbo.sysjobservers B 
-WHERE A.job_id = B.job_id AND B.last_run_outcome = 0 ;
+PRINT '--##  SQL Job Status'
+SELECT name JobName
+	, CASE enabled WHEN 0 THEN 'N' ELSE 'Y' END EnableYN
+FROM msdb.dbo.sysjobs
+ORDER BY name
+-- SELECT name
+--     INTO #Failed_SQL_Jobs
+-- FROM msdb.dbo.sysjobs A, msdb.dbo.sysjobservers B 
+-- WHERE A.job_id = B.job_id AND B.last_run_outcome = 0 ;
 
-IF (SELECT COUNT(*) FROM #Failed_SQL_Jobs) = 0 
-BEGIN 
-    --PRINT '** No SQL Job Information ** '
-    SELECT '' AS 'SQL Job Name' FROM #Failed_SQL_Jobs
-END
-ELSE
-BEGIN
-    SELECT CONVERT(nvarchar(75), name) AS 'SQL Job Name' FROM #Failed_SQL_Jobs
-END
+-- IF (SELECT COUNT(*) FROM #Failed_SQL_Jobs) = 0 
+-- BEGIN 
+--     --PRINT '** No SQL Job Information ** '
+--     SELECT '' AS 'SQL Job Name' FROM #Failed_SQL_Jobs where 1 = 0
+-- END
+-- ELSE
+-- BEGIN
+--     SELECT CONVERT(nvarchar(75), name) AS 'SQL Job Name' FROM #Failed_SQL_Jobs
+-- END
+-- ------------------------------------------------------------------------
+-- SELECT name
+--     INTO #Disabled_Jobs
+-- FROM msdb.dbo.sysjobs 
+-- WHERE enabled = 0
+-- ORDER BY name;
+
+-- SELECT CONVERT(nvarchar(75), name) AS 'Disabled SQL Jobs' FROM #Disabled_Jobs
+-- IF @@rowcount = 0 
+-- BEGIN 
+--     PRINT '** No Disabled Job Information ** '
+-- END;
+
 ------------------------------------------------------------------------
-SELECT name
-    INTO #Disabled_Jobs
-FROM msdb.dbo.sysjobs 
-WHERE enabled = 0
-ORDER BY name;
+PRINT '--##  SQL Server Agent Job Step Info'
 
-SELECT CONVERT(nvarchar(75), name) AS 'Disabled SQL Jobs' FROM #Disabled_Jobs
-    IF @@rowcount = 0 
-    BEGIN 
-        PRINT '** No Disabled Job Information ** '
-    END;
-
-------------------------------------------------------------------------
-PRINT '--## SQL Server Agent Job Step Info'
 SELECT 
     j.[job_id] AS [JobID]
     , j.[name] AS [JobName]
@@ -710,7 +720,7 @@ SELECT
      , js.step_id
      , js.step_name
      , js.subsystem
-     , js.command
+     --, js.command   // 줄바꿈 포맷이 깨져서 주석처리
      , js.on_success_action
      , js.on_fail_step_id
      , js.database_name
@@ -725,17 +735,17 @@ GO
 
 
 ------------------------------------------------------------------------
-PRINT '--## List of SQL Server Agent - Alerts'
+PRINT '--##  List of SQL Server Agent - Alerts'
 select * from  msdb.dbo.sysalerts 
 ------------------------------------------------------------------------
-PRINT '--## List of SQL Server Agent - Operators'
+PRINT '--##  List of SQL Server Agent - Operators'
 SELECT name, email_address, enabled FROM MSDB.dbo.sysoperators ORDER BY name
 ------------------------------------------------------------------------
-PRINT '--## List of SSIS packages in MSDB'
+PRINT '--##  List of SSIS packages in MSDB'
 select name, description, createdate from msdb..sysssispackages where description not like 'System Data Collector Package'
 GO
 ------------------------------------------------------------------------
-PRINT '--## Link Servers'
+PRINT '--##  Link Servers'
 SELECT * INTO #LinkInfo  FROM sys.servers WHERE is_linked ='1'
 
 SELECT 
@@ -772,7 +782,7 @@ BEGIN
 END
 ELSE
 BEGIN
-    PRINT '--## List all Linked Servers and their associated login'
+    PRINT '--##  List all Linked Servers and their associated login'
     SELECT ss.server_id ,ss.name ,'Server ' = Case ss.Server_id   when 0 then 'Current Server'   else 'Remote Server'   end
     ,ss.data_source,ss.product   ,ss.provider  ,ss.catalog  ,'Local Login ' = case sl.uses_self_credential   when 1 then 'Uses Self Credentials'
     else ssp.name end ,'Remote Login Name' = sl.remote_name ,'RPC Out Enabled'    = case ss.is_rpc_out_enabled when 1 then 'True'
@@ -782,22 +792,27 @@ BEGIN
     LEFT JOIN sys.server_principals ssp ON ssp.principal_id = sl.local_principal_id
 END
 ------------------------------------------------------------------------
-PRINT '--## Script out the Logon Triggers of the server, if any exists'
+PRINT '--##  Script out the Logon Triggers of the server, if any exists'
 SELECT SSM.definition FROM sys.server_triggers AS ST JOIN sys.server_sql_modules AS SSM ON ST.object_id = SSM.object_id
 ------------------------------------------------------------------------
-PRINT 'REPLICATION - List Publication or Subscription articles'
-IF EXISTS (SELECT 1 
-           FROM INFORMATION_SCHEMA.TABLES 
-           WHERE TABLE_TYPE='BASE TABLE' 
-           AND TABLE_NAME='sysextendedarticlesview') 
-(SELECT  sub.srvname,  pub.name, art.name, art.dest_table,art.dest_owner
-FROM sysextendedarticlesview art
-inner join syspublications pub on (art.pubid = pub.pubid)
-inner join syssubscriptions sub on (sub.artid = art.artid))
-ELSE SELECT 'No Publication or Subcsription articles were found'
+PRINT '--##  REPLICATION - List Publication or Subscription articles'
+
+IF EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE='BASE TABLE' AND TABLE_NAME='sysextendedarticlesview') 
+(
+    SELECT  sub.srvname,  pub.name, art.name2, art.dest_table,art.dest_owner
+    FROM sysextendedarticlesview art
+        inner join syspublications pub on (art.pubid = pub.pubid)
+        inner join syssubscriptions sub on (sub.artid = art.artid)
+    )
+ELSE
+    --SELECT 'No Publication or Subcsription articles were found'
+    SELECT  '' srvname,  '' name, '' name2, '' dest_table, '' dest_owner
+    FROM SYS.objects
+    WHERE 1 = 0
 GO
 ------------------------------------------------------------------------
-PRINT '--## SQL Mail Information'
+PRINT '--##  SQL Mail Information'
+
 CREATE TABLE #Database_Mail_Details
 (Status NVARCHAR(7))
 
@@ -806,6 +821,23 @@ BEGIN
     INSERT INTO #Database_Mail_Details (Status)
     Exec msdb.dbo.sysmail_help_status_sp
 END
+
+
+
+
+
+IF (SELECT COUNT (*) FROM #Database_Mail_Details) = 0
+BEGIN
+    --PRINT '** No Database Mail Service Status Information ** '
+    SELECT [Status] AS 'Database Mail Service Status' FROM #Database_Mail_Details WHERE 1=0
+END
+ELSE
+BEGIN
+    SELECT [Status] AS 'Database Mail Service Status' FROM #Database_Mail_Details
+END;
+
+------------------------------------------------------------------------
+PRINT '--##  Database Mail Service Statu'
 
 CREATE TABLE #Database_Mail_Details2
     (principal_id VARCHAR(4)
@@ -821,16 +853,6 @@ INSERT INTO #Database_Mail_Details2
     ,profile_name
     ,is_default)
 EXEC msdb.dbo.sysmail_help_principalprofile_sp ;
-
-IF (SELECT COUNT (*) FROM #Database_Mail_Details) = 0
-BEGIN
-    --PRINT '** No Database Mail Service Status Information ** '
-    SELECT [Status] AS 'Database Mail Service Status' FROM #Database_Mail_Details WHERE 1=0
-END
-ELSE
-BEGIN
-    SELECT [Status] AS 'Database Mail Service Status' FROM #Database_Mail_Details
-END;
 
 SELECT 
     principal_id  
@@ -848,7 +870,8 @@ FROM #Database_Mail_Details2
 --END;
 
 ------------------------------------------------------------------------
-PRINT '--## Database Mirroring Status'
+PRINT '--##  Database Mirroring Status'
+
 SELECT DB.name,
 CASE
     WHEN MIRROR.mirroring_state is NULL THEN 'Database Mirroring not configured and/or set'
@@ -869,7 +892,9 @@ BEGIN
             ,MirroringState AS 'Mirroring State'
     FROM #Database_Mirror_Stats
 END;
-    
+------------------------------------------------------------------------
+PRINT '--##  Database Mirroring Database'
+
 SELECT db_name(database_id) as 'Mirror DB_Name', 
     CASE mirroring_state 
         WHEN 0 THEN 'Suspended' 
@@ -916,7 +941,7 @@ BEGIN
 END
 
 ------------------------------------------------------------------------
-PRINT '--## Database Log Shipping Status'
+PRINT '--##  Database Log Shipping Status'
 CREATE TABLE #LogShipping
     ([status] BIT
     , [is_primary] BIT
@@ -947,62 +972,108 @@ IF (SELECT COUNT(*) FROM #LogShipping) = 0
     END
 
 ------------------------------------------------------------------------
-PRINT '--##Report Server (SSRS) Reports Information'
+PRINT '--##  Report Server (SSRS) Reports Information'
+
 IF EXISTS (SELECT name FROM sys.databases where name = 'ReportServer')
 BEGIN
-IF (SELECT COUNT(*) FROM reportserver.dbo.Catalog) = 0
-    BEGIN 
-        --PRINT '** No Report Server (SSRS) Reports Information ** '
-        SELECT '' AS 'Role Name'
-            , '' AS 'User Name'
-            , '' AS 'Report Name'
-            , '' AS 'Catalog Type'
-            , '' AS 'Description'
-    END
-    ELSE
-    BEGIN
+    -- IF (SELECT COUNT(*) FROM reportserver.dbo.Catalog) = 0
+    -- BEGIN 
+    --     --PRINT '** No Report Server (SSRS) Reports Information ** '
+    --     SELECT '' AS 'Role Name'
+    --         , '' AS 'User Name'
+    --         , '' AS 'Report Name'
+    --         , '' AS 'Catalog Type'
+    --         , '' AS 'Description'
+    --     FROM SYS.objects
+    --     WHERE 1 = 0
+    -- END
+    -- ELSE
+    -- BEGIN
         SELECT CONVERT(nvarchar(20),Rol.RoleName) AS 'Role Name'
-        ,CONVERT(nvarchar(35),Us.UserName) AS 'User Name'
-        ,CONVERT(nvarchar(35),Cat.[Name]) AS 'Report Name'
-        ,CASE Cat.Type WHEN 1 THEN 'Folder' WHEN 2 THEN 'Report' 
-            WHEN 3 THEN 'Resource' WHEN 4 THEN 'Linked Report' 
-            WHEN 3 THEN 'Data Source' ELSE '' END AS 'Catalog Type'
-        ,CONVERT(nvarchar(35),Cat.Description) AS'Description'
+            ,CONVERT(nvarchar(35),Us.UserName) AS 'User Name'
+            ,CONVERT(nvarchar(35),Cat.[Name]) AS 'Report Name'
+            ,CASE Cat.Type WHEN 1 THEN 'Folder' WHEN 2 THEN 'Report' 
+                WHEN 3 THEN 'Resource' WHEN 4 THEN 'Linked Report' 
+                WHEN 3 THEN 'Data Source' ELSE '' END AS 'Catalog Type'
+            ,CONVERT(nvarchar(35),Cat.Description) AS'Description'
         FROM reportserver.dbo.Catalog Cat 
-        INNER JOIN reportserver.dbo.Policies Pol ON Cat.PolicyID = Pol.PolicyID
-        INNER JOIN reportserver.dbo.PolicyUserRole PUR ON Pol.PolicyID = PUR.PolicyID 
-        INNER JOIN reportserver.dbo.Users Us ON PUR.UserID = Us.UserID 
-        INNER JOIN reportserver.dbo.Roles Rol ON PUR.RoleID = Rol.RoleID
+            INNER JOIN reportserver.dbo.Policies Pol ON Cat.PolicyID = Pol.PolicyID
+            INNER JOIN reportserver.dbo.PolicyUserRole PUR ON Pol.PolicyID = PUR.PolicyID 
+            INNER JOIN reportserver.dbo.Users Us ON PUR.UserID = Us.UserID 
+            INNER JOIN reportserver.dbo.Roles Rol ON PUR.RoleID = Rol.RoleID
         WHERE   Cat.Type in (1,2)
         ORDER BY Cat.PATH 
-    END
+    -- END
 END
 ELSE
-    BEGIN 
-        --PRINT '** No SSRS Reports Information Detection of ** '
-        SELECT '' AS 'Role Name'
-            , '' AS 'User Name'
-            , '' AS 'Report Name'
-            , '' AS 'Catalog Type'
-            , '' AS 'Description'
-    END
+BEGIN 
+    --PRINT '** No SSRS Reports Information Detection of ** '
+    SELECT '' AS 'Role Name'
+        , '' AS 'User Name'
+        , '' AS 'Report Name'
+        , '' AS 'Catalog Type'
+        , '' AS 'Description'
+    FROM SYS.objects
+    WHERE 1 = 0
+END
 ------------------------------------------------------------------------
-PRINT '--## SQL Server base folder & Port Info>'
-select *
-from sys.dm_server_registry
-where (
-        (registry_key = 'HKLM\SYSTEM\CurrentControlSet\Services\MSSQLSERVER' and value_name = 'ImagePath')
-            or (registry_key like '%SuperSocketNetLib\Tcp\IP%')
-    )
-    and registry_key not in
-    (
-        SELECT registry_key
-        FROM sys.dm_server_registry
-        WHERE registry_key like '%SuperSocketNetLib\Tcp\IP%' AND value_name = 'Enabled' and value_data = 0
-    )
-GO
+PRINT '--##  SQL Server base folder & Port Info'
+
+if (CONVERT(decimal(5, 1), CONVERT(char(4), SERVERPROPERTY('ProductVersion'))) >= 11.0 )    -- Windows 2012 이상만 sys.dm_server_registry 이용. 2008 r2 sp1부터 가능하지만 귀찮
+BEGIN
+    select *
+    from sys.dm_server_registry
+    where (
+            (registry_key = 'HKLM\SYSTEM\CurrentControlSet\Services\MSSQLSERVER' and value_name = 'ImagePath')
+                or (registry_key like '%SuperSocketNetLib\Tcp\IP%')
+        )
+        and registry_key not in
+        (
+            SELECT registry_key
+            FROM sys.dm_server_registry
+            WHERE registry_key like '%SuperSocketNetLib\Tcp\IP%' AND value_name = 'Enabled' and value_data = 0
+        )
+END
+ELSE
+BEGIN
+ 
+
+    ------------------------------------------------------------------------
+    DECLARE @HkeyLocal nvarchar(18)
+    Declare @Instance varchar(100)
+    DECLARE @MSSqlServerRegPath nvarchar(200)
+    DECLARE @TcpPort nvarchar(100)
+    DECLARE @TcpDynamicPorts nvarchar(100)
+    
+    DECLARE @InstanceVersion  varchar(100)
+
+
+    SET @InstanceVersion = CASE CONVERT(char(4), SERVERPROPERTY('ProductVersion'))
+                            WHEN '9.00' THEN '9'
+                            WHEN '10.0' THEN '10'
+                            WHEN '10.5' THEN '10_50'
+                            WHEN '11.0' THEN '11'
+                            WHEN '12.0' THEN '12'
+                        END
+    SET @Instance ='MSSQL' + @InstanceVersion + '.' +  CONVERT(VARCHAR(50), SERVERPROPERTY('InstanceName'))
+    --PRINT @Instance
+    --SET @Instance ='MSSQL10_50.SQLEXPRESS'
+    SET @HkeyLocal=N'HKEY_LOCAL_MACHINE'
+    SET @MSSqlServerRegPath=N'SOFTWARE\Microsoft\\Microsoft SQL Server\'
+        + @Instance + '\MSSQLServer\SuperSocketNetLib\Tcp\IPAll'
+    
+    --Print @MSSqlServerRegPath
+    EXEC xp_instance_regread @HkeyLocal    , @MSSqlServerRegPath    , N'TcpPort'    , @TcpPort OUTPUT
+    EXEC xp_instance_regread @HkeyLocal    , @MSSqlServerRegPath    , N'TcpDynamicPorts'    , @TcpDynamicPorts OUTPUT
+
+    SELECT @HkeyLocal + '\' +  @MSSqlServerRegPath registry_key, 'TcpPort' value_name, isnull(@TcpPort, '') as value_data
+    union all SELECT @HkeyLocal + '\' +  @MSSqlServerRegPath registry_key, 'TcpDynamicPorts' , isnull(@TcpDynamicPorts, '') as value_data 
+
+END    
 ------------------------------------------------------------------------
-PRINT '--## SQL Server Fulltext Info'
+
+PRINT '--##  SQL Server Fulltext Info'
+
 SELECT * from sys.fulltext_indexes ;
 GO
 ------------------------------------------------------------------------
@@ -1020,8 +1091,8 @@ DROP TABLE #RegResult;
 DROP TABLE #LinkInfo;
 DROP TABLE #HD_space;
 DROP TABLE #Last_Backup_Dates;
-DROP TABLE #Failed_SQL_Jobs;
-DROP TABLE #Disabled_Jobs;
+-- DROP TABLE #Failed_SQL_Jobs;
+-- DROP TABLE #Disabled_Jobs;
 DROP TABLE #Database_Mail_Details;
 DROP TABLE #Database_Mail_Details2;
 DROP TABLE #Database_Mirror_Stats;
