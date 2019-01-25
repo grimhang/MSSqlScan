@@ -7,44 +7,44 @@ SET NOCOUNT ON;
 
 2018-01-18     V2 초기완성 버전
 ----------------------- Version Control -------------------------------*/
-DECLARE @ScriptVersion CHAR(4)
-SET @ScriptVersion = 2.0 -- Version number of this script
+DECLARE @ScriptVersion VARCHAR(4)
+SET @ScriptVersion = '2.0' -- Version number of this script
 /*-------------------------------------------------------------------------*/
 
 DECLARE 
-      @CurrentDate NVARCHAR(50) -- Current data/time
-    , @SQLServerName NVARCHAR(50) --Set SQL Server Name
-    , @NodeName1 NVARCHAR(50) -- Name of node 1 if clustered
-    , @NodeName2 NVARCHAR(50) -- Name of node 2 if clustered
-    --, @NodeName3 NVARCHAR(50) /* -- remove remarks if more than 2 node cluster */
+      @CurrentDate NVARCHAR(50) 	-- Current data/time
+    , @SQLServerName NVARCHAR(50) 	--Set SQL Server Name
+    , @NodeName1 NVARCHAR(50) 		-- Name of node 1 if clustered
+    , @NodeName2 NVARCHAR(50) 		-- Name of node 2 if clustered
+    --, @NodeName3 NVARCHAR(50) /* 	-- remove remarks if more than 2 node cluster */
     --, @NodeName4 NVARCHAR(50) /*-- remove remarks if more than 2 node cluster */
-    , @AccountName NVARCHAR(50) -- Account name used
+    , @AccountName NVARCHAR(50) 	-- Account name used
     , @StaticPortNumber NVARCHAR(50) -- Static port number
-    , @INSTANCENAME NVARCHAR(30) -- SQL Server Instance Name
-    , @VALUENAME NVARCHAR(20) -- Detect account used in SQL 2005, see notes below
-    , @KERB NVARCHAR(50) -- Is Kerberos used or not
-    , @DomainName NVARCHAR(50) -- Name of Domain
-    , @IP NVARCHAR(20)  -- IP address used by SQL Server
+    , @INSTANCENAME NVARCHAR(30) 	-- SQL Server Instance Name
+    , @VALUENAME NVARCHAR(20) 		-- Detect account used in SQL 2005, see notes below
+    , @KERB NVARCHAR(50) 			-- Is Kerberos used or not
+    , @DomainName NVARCHAR(50) 		-- Name of Domain
+	, @IP NVARCHAR(20) 				-- IP address used by SQL Server
     --, @InstallDate NVARCHAR(20) -- Installation date of SQL Server
-    , @InstallDate datetime -- Installation date of SQL Server
-    , @ProductVersion NVARCHAR(30) -- Production version
-    , @MachineName NVARCHAR(30) -- Server name
-    , @ServerName NVARCHAR(30) -- SQL Server name
-    , @Instance NVARCHAR(30) --  Instance name
-    , @EDITION NVARCHAR(30) --SQL Server Edition
-    , @ProductLevel NVARCHAR(20) -- Product level
-    , @ISClustered NVARCHAR(20) -- System clustered
+    , @InstallDate datetime 		-- Installation date of SQL Server
+    , @ProductVersion NVARCHAR(30) 	-- Production version
+    , @MachineName NVARCHAR(30) 	-- Server name
+    , @ServerName NVARCHAR(30) 		-- SQL Server name
+    , @Instance NVARCHAR(30) 		--  Instance name
+    , @EDITION NVARCHAR(30) 		--SQL Server Edition
+    , @ProductLevel NVARCHAR(20) 	-- Product level
+    , @ISClustered NVARCHAR(20) 	-- System clustered
     , @ISIntegratedSecurityOnly NVARCHAR(50) -- Security level
-    , @ISSingleUser NVARCHAR(20) -- System in Single User mode
-    , @COLLATION NVARCHAR(30)  -- Collation type
+    , @ISSingleUser NVARCHAR(20) 	-- System in Single User mode
+    , @COLLATION NVARCHAR(30)  		-- Collation type
     , @physical_CPU_Count VARCHAR(4) -- CPU count
-    , @EnvironmentType VARCHAR(15) -- Physical or Virtual
-    , @MaxMemory NVARCHAR(10) -- Max memory
-    , @MinMemory NVARCHAR(10) -- Min memory
+    , @EnvironmentType VARCHAR(15) 	-- Physical or Virtual
+    , @MaxMemory NVARCHAR(10) 		-- Max memory
+    , @MinMemory NVARCHAR(10) 		-- Min memory
     , @TotalMEMORYinBytes NVARCHAR(10) -- Total memory
-    , @ErrorLogLocation VARCHAR(500) -- location of error logs
-    , @TraceFileLocation VARCHAR(100) -- location of trace files
-    , @LinkServers VARCHAR(2) -- Number of linked servers found
+    , @ErrorLogLocation VARCHAR(500) 	-- location of error logs
+    , @TraceFileLocation VARCHAR(100) 	-- location of trace files
+    , @LinkServers VARCHAR(2) 			-- Number of linked servers found
 
 SET @CurrentDate = CONVERT(varchar(100), GETDATE(), 120)
 SET @ServerName = (SELECT @@SERVERNAME)
@@ -93,16 +93,16 @@ SET @ProductLevel = (SELECT CONVERT(char(30), SERVERPROPERTY('ProductLevel')))
 SET @physical_CPU_Count = (SELECT cpu_count FROM sys.dm_os_sys_info)
 ------------------------------------------------------------------------
 SET @ProductVersion = CONVERT(varchar(30), SERVERPROPERTY('ProductVersion'))
-IF @ProductVersion LIKE '6.5%' SET @ProductVersion =  'SQL Server 6.5'
-IF @ProductVersion LIKE '7.0%' SET @ProductVersion =  'SQL Server 7'
-IF @ProductVersion LIKE '8.0%' SET @ProductVersion =  'SQL Server 2000'
-IF @ProductVersion LIKE '9.0%' SET @ProductVersion =  'SQL Server 2005'  
+IF @ProductVersion LIKE '6.5%'   SET @ProductVersion = 'SQL Server 6.5'
+IF @ProductVersion LIKE '7.0%'   SET @ProductVersion = 'SQL Server 7'
+IF @ProductVersion LIKE '8.0%'   SET @ProductVersion = 'SQL Server 2000'
+IF @ProductVersion LIKE '9.0%'   SET @ProductVersion = 'SQL Server 2005'  
 IF @ProductVersion LIKE '10.0%'  SET @ProductVersion = 'SQL Server 2008' 
 IF @ProductVersion LIKE '10.50%' SET @ProductVersion = 'SQL Server 2008R2' 
-IF @ProductVersion LIKE '11.0%' SET @ProductVersion =  'SQL Server 2012' 
-IF @ProductVersion LIKE '12.0%' SET @ProductVersion =  'SQL Server 2014' 
-IF @ProductVersion LIKE '14.0%' SET @ProductVersion =  'SQL Server 2016'  -- for future use
-IF @ProductVersion LIKE '15.0%' SET @ProductVersion =  'SQL Server 2017'  -- for future use
+IF @ProductVersion LIKE '11.0%'  SET @ProductVersion = 'SQL Server 2012' 
+IF @ProductVersion LIKE '12.0%'  SET @ProductVersion = 'SQL Server 2014' 
+IF @ProductVersion LIKE '14.0%'  SET @ProductVersion = 'SQL Server 2016'  -- for future use
+IF @ProductVersion LIKE '15.0%'  SET @ProductVersion = 'SQL Server 2017'  -- for future use
 ------------------------------------------------------------------------
 /* This section only works on SQL 2012 and higher */
 
@@ -116,12 +116,12 @@ IF @ProductVersion LIKE '15.0%' SET @ProductVersion =  'SQL Server 2017'  -- for
 SET @MaxMemory = (select CONVERT(char(10), [value_in_use]) from  #SQL_Server_Settings where name = 'max server memory (MB)')
 SET @MinMemory = (select CONVERT(char(10), [value_in_use]) from  #SQL_Server_Settings where name = 'min server memory (MB)')
 ------------------------------------------------------------------------
-SELECT DEC.local_net_address INTO #IP FROM sys.dm_exec_connections AS DEC WHERE DEC.session_id = @@SPID;
+--SELECT DEC.local_net_address INTO #IP FROM sys.dm_exec_connections AS DEC WHERE DEC.session_id = @@SPID;
 SET @IP = (SELECT DEC.Local_Net_Address FROM sys.dm_exec_connections AS DEC WHERE DEC.session_id = @@SPID)
 ------------------------------------------------------------------------
 SET @StaticPortNumber = (SELECT local_tcp_port FROM sys.dm_exec_connections WHERE session_id = @@SPID)
 ------------------------------------------------------------------------
-SET @DomainName = (SELECT DEFAULT_DOMAIN())
+SET @DomainName = DEFAULT_DOMAIN()
 ------------------------------------------------------------------------
 --For Service Account Name - This line will work on SQL 2008R2 and higher only
 --SET @AccountName = (SELECT top 1 service_account FROM sys.dm_server_services)
@@ -153,17 +153,19 @@ BEGIN
 END
 
 ------------------------------------------------------------------------
-SELECT net_transport, auth_scheme INTO #KERBINFO FROM sys.dm_exec_connections WHERE session_id = @@spid
-IF @@rowcount = 0 
-BEGIN 
+-- SELECT net_transport, auth_scheme INTO #KERBINFO FROM sys.dm_exec_connections WHERE session_id = @@spid
+-- IF @@rowcount = 0 
+--     SET @KERB = 'Kerberos not used in TCP network transport'
+-- ELSE
+--     SET @KERB = 'TCP is using Kerberos'
+
+IF (SELECT count(*) FROM sys.dm_exec_connections WHERE session_id = @@spid) > 0
     SET @KERB = 'Kerberos not used in TCP network transport'
-END
 ELSE
-BEGIN
     SET @KERB = 'TCP is using Kerberos'
-END
+
 ------------------------------------------------------------------------
-IF (SELECT CONVERT(char(30), SERVERPROPERTY('ISIntegratedSecurityOnly'))) = 1
+IF (SELECT CONVERT(int, SERVERPROPERTY('ISIntegratedSecurityOnly'))) = 1
     SET @ISIntegratedSecurityOnly = 'Windows Authentication Security Mode'
 ELSE
     SET @ISIntegratedSecurityOnly = 'SQL Server Authentication Security Mode'
@@ -173,20 +175,21 @@ DECLARE @AuditLevel int,
 EXEC MASTER.dbo.xp_instance_regread N'HKEY_LOCAL_MACHINE', 
                     N'Software\Microsoft\MSSQLServer\MSSQLServer', N'AuditLevel', @AuditLevel OUTPUT
 
-SELECT @AuditLvltxt = CASE 
+SELECT @AuditLvltxt =
+	CASE 
         WHEN @AuditLevel = 0    THEN 'None'
         WHEN @AuditLevel = 1    THEN 'Successful logins only'
         WHEN @AuditLevel = 2    THEN 'Failed logins only'
         WHEN @AuditLevel = 3    THEN 'Both successful and failed logins'
-        ELSE 'Unknown'
-        END
+    	ELSE 'Unknown'
+    END
 ------------------------------------------------------------------------
-IF (SELECT CONVERT(char(30), SERVERPROPERTY('ISSingleUser'))) = 1
+IF (SELECT CONVERT(int, SERVERPROPERTY('ISSingleUser'))) = 1
     SET @ISSingleUser = 'Single User'
 ELSE
     SET @ISSingleUser = 'Multi User'
 ------------------------------------------------------------------------
-SET @COLLATION = (SELECT CONVERT(char(30), SERVERPROPERTY('COLLATION')))
+SET @COLLATION = (SELECT CONVERT(varchar(30), SERVERPROPERTY('COLLATION')))
 ------------------------------------------------------------------------
 SET @ErrorLogLocation = (SELECT REPLACE(CAST(SERVERPROPERTY('ErrorLogFileName') AS VARCHAR(500)), 'ERRORLOG',''))
 ------------------------------------------------------------------------
@@ -1070,21 +1073,25 @@ BEGIN
     union all SELECT @HkeyLocal + '\' +  @MSSqlServerRegPath registry_key, 'TcpDynamicPorts' , isnull(@TcpDynamicPorts, '') as value_data 
 
 END    
-------------------------------------------------------------------------
+GO
 
+------------------------------------------------------------------------
 PRINT '--##  SQL Server Fulltext Info'
 
 SELECT * from sys.fulltext_indexes ;
 GO
+
 ------------------------------------------------------------------------
 PRINT '--##  List all System and Mirroring endpoints'
+
 select * from sys.endpoints 
 GO
+
 ------------------------------------------------------------------------
 -- Performing clean up
-DROP TABLE #KERBINFO;
+--DROP TABLE #KERBINFO;
 DROP TABLE #nodes;
-DROP TABLE #IP;
+--DROP TABLE #IP;
 DROP TABLE #SQL_Server_Settings;
 DROP TABLE #ServicesServiceStatus;    
 DROP TABLE #RegResult;    
