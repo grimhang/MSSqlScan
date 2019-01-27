@@ -786,11 +786,14 @@ FROM #LinkInfo
 -- ELSE
 -- BEGIN
 PRINT '--##  List all Linked Servers and their associated login'
-SELECT ss.server_id ,ss.name ,'Server ' = Case ss.Server_id   when 0 then 'Current Server'   else 'Remote Server'   end
-    ,ss.data_source,ss.product   ,ss.provider  ,ss.catalog  ,'Local Login ' = case sl.uses_self_credential   when 1 then 'Uses Self Credentials'
-    else ssp.name end ,'Remote Login Name' = sl.remote_name ,'RPC Out Enabled'    = case ss.is_rpc_out_enabled when 1 then 'True'
-    else 'False' end ,'Data Access Enabled' = case ss.is_data_access_enabled when 1 then 'True' else 'False' end
-    ,ss.modify_date
+SELECT ss.server_id ,ss.name 
+    , 'Server ' = Case ss.Server_id   when 0 then 'Current Server'   else 'Remote Server'   end
+    , ss.data_source, ss.product , ss.provider  , ss.catalog  
+    , 'Local Login ' = case sl.uses_self_credential   when 1 then 'Uses Self Credentials' else ssp.name end
+    , 'Remote Login Name' = sl.remote_name 
+    , 'RPC Out Enabled'    = case ss.is_rpc_out_enabled when 1 then 'True' else 'False' end 
+    , 'Data Access Enabled' = case ss.is_data_access_enabled when 1 then 'True' else 'False' end
+    , ss.modify_date
 FROM sys.Servers ss  
     LEFT JOIN sys.linked_logins sl ON ss.server_id = sl.server_id
     LEFT JOIN sys.server_principals ssp ON ssp.principal_id = sl.local_principal_id
@@ -803,7 +806,7 @@ PRINT '--##  REPLICATION - List Publication or Subscription articles'
 
 IF EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE='BASE TABLE' AND TABLE_NAME='sysextendedarticlesview') 
 (
-    SELECT  sub.srvname,  pub.name, art.name2, art.dest_table,art.dest_owner
+    SELECT  sub.srvname,  pub.name, art.name2, art.dest_table, art.dest_owner
     FROM sysextendedarticlesview art
         inner join syspublications pub on (art.pubid = pub.pubid)
         inner join syssubscriptions sub on (sub.artid = art.artid)
@@ -825,9 +828,6 @@ BEGIN
     INSERT INTO #Database_Mail_Details (Status)
     Exec msdb.dbo.sysmail_help_status_sp
 END
-
-
-
 
 
 IF (SELECT COUNT (*) FROM #Database_Mail_Details) = 0
@@ -877,25 +877,25 @@ FROM #Database_Mail_Details2
 PRINT '--##  Database Mirroring Status'
 
 SELECT DB.name,
-CASE
-    WHEN MIRROR.mirroring_state is NULL THEN 'Database Mirroring not configured and/or set'
-    ELSE 'Mirroring is configured and/or set'
-END AS MirroringState
-INTO #Database_Mirror_Stats
-FROM sys.databases DB INNER JOIN sys.database_mirroring MIRROR
-ON DB.database_id=MIRROR.database_id WHERE DB.database_id > 4 ORDER BY DB.NAME;
+    CASE
+        WHEN MIRROR.mirroring_state is NULL THEN 'Database Mirroring not configured and/or set'
+        ELSE 'Mirroring is configured and/or set'
+    END AS MirroringState
+        INTO #Database_Mirror_Stats
+FROM sys.databases DB
+    JOIN sys.database_mirroring MIRROR      ON DB.database_id=MIRROR.database_id WHERE DB.database_id > 4 ORDER BY DB.NAME;
 
-IF (SELECT COUNT(*) FROM #Database_Mirror_Stats) = 0
-BEGIN
-        PRINT ' ** No Mirroring Information Detection of **'
+-- IF (SELECT COUNT(*) FROM #Database_Mirror_Stats) = 0
+-- BEGIN
+--         PRINT ' ** No Mirroring Information Detection of **'
         
-END
-ELSE
-BEGIN
-    SELECT CONVERT(nvarchar(35),name) AS 'Database Name'
-            ,MirroringState AS 'Mirroring State'
-    FROM #Database_Mirror_Stats
-END;
+-- END
+-- ELSE
+-- BEGIN
+SELECT CONVERT(nvarchar(35),name)   AS 'Database Name'
+    ,MirroringState                 AS 'Mirroring State'
+FROM #Database_Mirror_Stats
+--END;
 ------------------------------------------------------------------------
 PRINT '--##  Database Mirroring Database'
 
