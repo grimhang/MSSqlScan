@@ -4,9 +4,8 @@ GO
 SET NOCOUNT ON;
 
 /* SQL Server Configuration Report  
-
 2018-01-18     V2 초기완성 버전
------------------------ Version Control -------------------------------*/
+--------------------------- Version Control -------------------------------*/
 DECLARE @ScriptVersion VARCHAR(4)
 SET @ScriptVersion = '2.0' -- Version number of this script
 /*-------------------------------------------------------------------------*/
@@ -147,7 +146,7 @@ BEGIN
 END
 ELSE
 BEGIN
-    SET @NodeName1 = (SELECT top 1 NodeName from #nodes)
+    SET @NodeName1 = (SELECT top 1 NodeName from #nodes order by NodeName)
     SET @NodeName2 = (SELECT NodeName from #nodes where NodeName <> @NodeName1)
     -- Add code here if more that 2 node cluster
 END
@@ -233,47 +232,37 @@ select * from sys.server_principals where type in ('S', 'U') order by name
 ------------------------------------------------------------------------
 PRINT '--##  SysAdmin Members'
 
-SELECT 'sysadmin' as 'Role'
-    ,CONVERT (NVARCHAR(50), name) COLLATE DATABASE_DEFAULT AS 'Login\[Member Name]' 
+SELECT 'Role'               = 'sysadmin'
+    , 'Login\[Member Name]' = CONVERT (NVARCHAR(50), name) COLLATE DATABASE_DEFAULT 
 FROM sys.server_principals
 WHERE IS_SRVROLEMEMBER('sysadmin', name) = 1
-order by 'Login\[Member Name]' 
-
-
--- IF (SELECT COUNT(*) FROM sys.server_principals) = 0
--- BEGIN
---         PRINT '    ** No    Sysadmin Users Detection of ** '
--- END
--- ELSE
--- BEGIN
---     SELECT 'sysadmin' as 'Role'
---     ,CONVERT (NVARCHAR(50), name) COLLATE DATABASE_DEFAULT AS 'Login\Member Name' 
---     FROM sys.server_principals
---     WHERE IS_SRVROLEMEMBER('sysadmin', name) = 1
--- END
+ORDER BY 'Login\[Member Name]' 
 
 ------------------------------------------------------------------------
 PRINT '--##  ServerAdmin Members'
 
 IF (SELECT COUNT(*) FROM sys.server_principals WHERE (type ='R') and (name='serveradmin')) = 0
-    BEGIN 
-        PRINT '    ** No ServerAdmin Users Detection of ** '
-    END
+BEGIN 
+    PRINT '    ** No ServerAdmin Users Detection of ** '
+END
 ELSE
 BEGIN
-SELECT CONVERT (NVARCHAR(20),r.name) AS'Role'
+    SELECT CONVERT (NVARCHAR(20),r.name) AS'Role'
             , CONVERT (NVARCHAR(50),p.name)  AS 'Login\Member Name'
-  FROM    sys.server_principals r
-  JOIN    sys.server_role_members m  ON    r.principal_id = m.role_principal_id
-  JOIN    sys.server_principals p ON    p.principal_id = m.member_principal_id
- WHERE    (r.type ='R')and(r.name='serveradmin')
- END
+    FROM    sys.server_principals r
+        JOIN sys.server_role_members m  ON    r.principal_id = m.role_principal_id
+        JOIN sys.server_principals p ON    p.principal_id = m.member_principal_id
+    WHERE    (r.type ='R') and (r.name='serveradmin')
+END
 
 ------------------------------------------------------------------------
 PRINT '--##  MS-SQL Server Configuration setting' 
 
-SELECT [name] as 'Configuration Setting' ,(CONVERT (CHAR(20),[value_in_use] )) as 'Value in Use'
+SELECT [name]                               AS 'Configuration Setting'
+    , (CONVERT (CHAR(20),[value_in_use] ))  AS 'Value in Use'
 FROM #SQL_Server_Settings
+GO
+
 ------------------------------------------------------------------------
 PRINT '--##  Detection of code that automatically executes on startup'
 
@@ -283,7 +272,7 @@ SELECT CONVERT (NVARCHAR(35), name) AS 'Name'
                 ,  modify_date AS 'Modified Date'
 FROM sys.procedures
 WHERE is_auto_executed = 1
-
+GO
 -- IF (SELECT COUNT(*) FROM sys.procedures WHERE is_auto_executed = 1) = 0
 -- BEGIN 
 --     PRINT '** No code that automatically execute on startup Detection of ** '
@@ -934,15 +923,15 @@ SELECT db_name(database_id) as 'Mirror DB_Name',
     INTO #DB_Mirror_Details
     FROM sys.Database_mirroring WHERE mirroring_role is not null;
 
-IF (SELECT COUNT(*) FROM #DB_Mirror_Details) = 0
-BEGIN 
-    --PRINT ' ** No Mirroring Configuration Information Detection of**'
-    SELECT * FROM #DB_Mirror_Details WHERE 1 = 0
-END
-ELSE
-BEGIN
-    SELECT * FROM #DB_Mirror_Details
-END
+-- IF (SELECT COUNT(*) FROM #DB_Mirror_Details) = 0
+-- BEGIN 
+--     --PRINT ' ** No Mirroring Configuration Information Detection of**'
+--     SELECT * FROM #DB_Mirror_Details WHERE 1 = 0
+-- END
+-- ELSE
+-- BEGIN
+SELECT * FROM #DB_Mirror_Details
+--END
 
 ------------------------------------------------------------------------
 PRINT '--##  Database Log Shipping Status'
@@ -1040,8 +1029,6 @@ BEGIN
 END
 ELSE
 BEGIN
- 
-
     ------------------------------------------------------------------------
     DECLARE @HkeyLocal nvarchar(18)
     Declare @Instance varchar(100)
