@@ -116,7 +116,12 @@ SET @MaxMemory = (select CONVERT(char(10), [value_in_use]) from  #SQL_Server_Set
 SET @MinMemory = (select CONVERT(char(10), [value_in_use]) from  #SQL_Server_Settings where name = 'min server memory (MB)')
 ------------------------------------------------------------------------
 --SELECT DEC.local_net_address INTO #IP FROM sys.dm_exec_connections AS DEC WHERE DEC.session_id = @@SPID;
-SET @IP = (SELECT DEC.Local_Net_Address FROM sys.dm_exec_connections AS DEC WHERE DEC.session_id = @@SPID)
+--SET @IP = (SELECT DEC.Local_Net_Address FROM sys.dm_exec_connections AS DEC WHERE DEC.session_id = @@SPID)
+SELECT TOP 1 @IP = Local_Net_Address
+FROM sys.dm_exec_connections AS DEC
+WHERE net_transport = 'TCP'
+GROUP BY Local_Net_Address
+ORDER BY COUNT(*)
 ------------------------------------------------------------------------
 SET @StaticPortNumber = (SELECT local_tcp_port FROM sys.dm_exec_connections WHERE session_id = @@SPID)
 ------------------------------------------------------------------------
@@ -207,7 +212,7 @@ UNION SELECT 'Production Name', @ProductVersion
 UNION SELECT 'Logical CPU Count', @physical_CPU_Count
 UNION SELECT 'Max Server Memory(Megabytes)', @MaxMemory
 UNION SELECT 'Min Server Memory(Megabytes)', @MinMemory
-UNION SELECT 'IP Address', @IP
+UNION SELECT 'Server IP Address', @IP
 UNION SELECT 'Port Number', @StaticPortNumber
 UNION SELECT 'Domain Name', @DomainName
 UNION SELECT 'Service Account name', @AccountName
