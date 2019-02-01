@@ -1,10 +1,7 @@
-USE MASTER
-GO
-
 SET NOCOUNT ON;
 
 /* SQL Server Configuration Report  
-2018-01-18     V2 초기완성 버전
+2018-01-18     Ver1 초기완성 버전
 --------------------------- Version Control -------------------------------*/
 DECLARE @ScriptVersion VARCHAR(4)
 SET @ScriptVersion = '2.0' -- Version number of this script
@@ -19,7 +16,7 @@ DECLARE
     --, @NodeName4 NVARCHAR(50) /*-- remove remarks if more than 2 node cluster */
     , @AccountName NVARCHAR(50) 	-- Account name used
     , @StaticPortNumber NVARCHAR(50) -- Static port number
-    , @INSTANCENAME NVARCHAR(30) 	-- SQL Server Instance Name
+    , @INSTANCENAME NVARCHAR(100) 	-- SQL Server Instance Name
     , @VALUENAME NVARCHAR(20) 		-- Detect account used in SQL 2005, see notes below
     , @KERB NVARCHAR(50) 			-- Is Kerberos used or not
     , @DomainName NVARCHAR(50) 		-- Name of Domain
@@ -84,10 +81,16 @@ PRINT '--##  SQL Server Summary'
 SET @SQLServerName = (SELECT @@ServerName) -- SQL Server name
 SET @InstallDate = (SELECT  createdate FROM sys.syslogins where sid = 0x010100000000000512000000)
 SET @MachineName = (SELECT CONVERT(char(100), SERVERPROPERTY('MachineName'))) 
-SET @InstanceName = CASE WHEN  (SELECT CONVERT(varchar(50), SERVERPROPERTY('InstanceName'))) IS NULL THEN 'Default Instance'
-                        ELSE @InstanceName
+-- SET @InstanceName = CASE WHEN  (SELECT CONVERT(varchar(50), SERVERPROPERTY('InstanceName'))) IS NULL THEN 'Default Instance'
+--                         ELSE @InstanceName
+--                     END
+
+SET @InstanceName = CASE
+						WHEN  SERVERPROPERTY('InstanceName') IS NULL THEN 'Default Instance'
+                        ELSE CONVERT(varchar(50), SERVERPROPERTY('InstanceName'))
                     END
-SET @EDITION = (SELECT CONVERT(char(30), SERVERPROPERTY('EDITION')))
+
+SET @EDITION = (SELECT CONVERT(VARchar(30), SERVERPROPERTY('EDITION')))
 SET @ProductLevel = (SELECT CONVERT(char(30), SERVERPROPERTY('ProductLevel')))
 SET @physical_CPU_Count = (SELECT cpu_count FROM sys.dm_os_sys_info)
 ------------------------------------------------------------------------
@@ -121,9 +124,14 @@ SELECT TOP 1 @IP = Local_Net_Address
 FROM sys.dm_exec_connections AS DEC
 WHERE net_transport = 'TCP'
 GROUP BY Local_Net_Address
-ORDER BY COUNT(*)
+ORDER BY COUNT(*) DESC
 ------------------------------------------------------------------------
-SET @StaticPortNumber = (SELECT local_tcp_port FROM sys.dm_exec_connections WHERE session_id = @@SPID)
+--SET @StaticPortNumber = (SELECT local_tcp_port FROM sys.dm_exec_connections WHERE session_id = @@SPID)
+SELECT TOP 1 @StaticPortNumber = local_tcp_port
+FROM sys.dm_exec_connections
+WHERE net_transport = 'TCP'
+GROUP BY local_tcp_port
+ORDER BY COUNT(*) DESC
 ------------------------------------------------------------------------
 SET @DomainName = DEFAULT_DOMAIN()
 ------------------------------------------------------------------------
@@ -152,7 +160,7 @@ END
 ELSE
 BEGIN
     SET @NodeName1 = (SELECT top 1 NodeName from #nodes order by NodeName)
-    SET @NodeName2 = (SELECT NodeName from #nodes where NodeName <> @NodeName1)
+    SET @NodeName2 = (SELECT TOP 1 NodeName from #nodes where NodeName > @NodeName1)
     -- Add code here if more that 2 node cluster
 END
 
@@ -188,6 +196,13 @@ SELECT @AuditLvltxt =
     	ELSE 'Unknown'
     END
 ------------------------------------------------------------------------
+DECLARE @ImagePath varchar(500), @SQLServerEnginePath varchar(500)
+
+EXEC MASTER.dbo.xp_instance_regread N'HKEY_LOCAL_MACHINE', 
+                    N'SYSTEM\CurrentControlSet\Services\MSSQLSERVER', N'ImagePath', @ImagePath OUTPUT
+
+SET @SQLServerEnginePath = REPLACE(SUBSTRING(@ImagePath, 2, CHARINDEX('"',  @ImagePath, 2) - 2), 'sqlservr.exe', '')
+------------------------------------------------------------------------
 IF (SELECT CONVERT(int, SERVERPROPERTY('ISSingleUser'))) = 1
     SET @ISSingleUser = 'Single User'
 ELSE
@@ -201,35 +216,41 @@ SET @TraceFileLocation = (SELECT REPLACE(CONVERT(VARCHAR(100),SERVERPROPERTY('Er
 ------------------------------------------------------------------------
 SET @LinkServers = (SELECT COUNT(*) FROM sys.servers WHERE is_linked ='1')
 ------------------------------------------------------------------------
-SELECT 'SQLServerName\InstanceName' as KeyName, @SQLServerName KeyVal
-UNION SELECT 'Install Date' , CONVERT(varchar(200), @InstallDate, 120)
-UNION SELECT 'Machine Name' , @MachineName
-UNION SELECT 'Instance Name' , @InstanceName
-UNION SELECT 'SQL Server Edition and BIT Level', @EDITION
-UNION SELECT 'SQL Server Bit Level', CASE WHEN CHARINDEX('64-bit', @@VERSION) > 0 THEN '64bit' else '32bit' end
-UNION SELECT 'SQL Server Service Pack', @ProductLevel
-UNION SELECT 'Production Name', @ProductVersion
-UNION SELECT 'Logical CPU Count', @physical_CPU_Count
-UNION SELECT 'Max Server Memory(Megabytes)', @MaxMemory
-UNION SELECT 'Min Server Memory(Megabytes)', @MinMemory
-UNION SELECT 'Server IP Address', @IP
-UNION SELECT 'Port Number', @StaticPortNumber
-UNION SELECT 'Domain Name', @DomainName
-UNION SELECT 'Service Account name', @AccountName
-UNION SELECT 'Clustered Status', @ISClustered
-UNION SELECT 'Node1 Name', @NodeName1
-UNION SELECT 'Node2 Name', @NodeName2
-UNION SELECT 'Kerberos', @KERB
-UNION SELECT 'Security Mode', @ISIntegratedSecurityOnly 
-UNION SELECT 'Audit Level', @AuditLvltxt
-UNION SELECT 'User Mode', @ISSingleUser
-UNION SELECT 'SQL Server Collation Type', @COLLATION
---UNION SELECT 'SQL Server Engine Location', REPLACE(@ErrorLogLocation, '\Log\', '\Binn\')
-UNION SELECT 'SQL Server Errorlog Location', @ErrorLogLocation
-UNION SELECT 'SQL Server Default Trace Location', @TraceFileLocation
-UNION SELECT 'Number of Link Servers', @LinkServers
+SELECT KeyName, KeyVal
+FROM
+(
+    SELECT 1 ValSeq, 'SQLServerName\InstanceName' as KeyName, @SQLServerName KeyVal
+    UNION SELECT 2, 'Active Node', SERVERPROPERTY('ComputerNamePhysicalNetBIOS')
+    UNION SELECT 3, 'Machine Name' , @MachineName
+    UNION SELECT 4, 'Instance Name' , @InstanceName
+    UNION SELECT 5, 'Install Date' , CONVERT(varchar(200), @InstallDate, 120)
+    UNION SELECT 6, 'Production Name', @ProductVersion
+    UNION SELECT 7, 'SQL Server Edition and Bit Level', @EDITION
+    UNION SELECT 8, 'SQL Server Bit Level', CASE WHEN CHARINDEX('64-bit', @@VERSION) > 0 THEN '64bit' else '32bit' end
+    UNION SELECT 9, 'SQL Server Service Pack', @ProductLevel    
+    UNION SELECT 10, 'Logical CPU Count', @physical_CPU_Count
+    UNION SELECT 11, 'Max Server Memory(Megabytes)', @MaxMemory
+    UNION SELECT 12, 'Min Server Memory(Megabytes)', @MinMemory
+    UNION SELECT 13, 'Server IP Address', @IP
+    UNION SELECT 14, 'Port Number', @StaticPortNumber
+    UNION SELECT 15, 'Domain Name', @DomainName
+    UNION SELECT 16, 'Service Account name', @AccountName
+    UNION SELECT 17, 'Clustered Status', @ISClustered
+    UNION SELECT 18, 'Node1 Name', @NodeName1
+    UNION SELECT 19, 'Node2 Name', @NodeName2
+    UNION SELECT 20, 'Kerberos', @KERB
+    UNION SELECT 21, 'Security Mode', @ISIntegratedSecurityOnly 
+    UNION SELECT 22, 'Audit Level', @AuditLvltxt
+    UNION SELECT 23, 'User Mode', @ISSingleUser
+    UNION SELECT 24, 'SQL Server Collation Type', @COLLATION
+    UNION SELECT 25, 'SQL Server Engine Location', @SQLServerEnginePath
+    UNION SELECT 26, 'SQL Server Errorlog Location', @ErrorLogLocation
+    UNION SELECT 27, 'SQL Server Default Trace Location', @TraceFileLocation
+    UNION SELECT 28, 'Number of Link Servers', @LinkServers
 --UNION SELECT 'OS Version', RIGHT(@@version, LEN(@@version)- 3 -charindex (' ON ', @@VERSION))
 --UNION SELECT 'OS Version', RTRIM(@@VERSION)
+) temp
+ORDER BY ValSeq
 ------------------------------------------------------------------------
 PRINT '--##  Server Logins'
 
@@ -269,7 +290,7 @@ FROM #SQL_Server_Settings
 GO
 
 ------------------------------------------------------------------------
-PRINT '--##  Detection of code that automatically executes on startup'
+PRINT '--##  Automatically executes on startup Code'
 
 SELECT CONVERT (NVARCHAR(35), name) AS 'Name'
                 , CONVERT (NVARCHAR(25), type_desc) AS 'Type'
@@ -647,8 +668,7 @@ SELECT
     , MAX(Backup_finish_date))))
     , 'NEVER') as DaysSinceLastBackup
     , ISNULL(Convert(char(10)
-    , MAX(backup_finish_date)
-    , 101)
+    , MAX(backup_finish_date), 101)
     , 'NEVER') as LastBackupDate
         INTO #Last_Backup_Dates
 FROM master.dbo.sysdatabases B 
@@ -733,16 +753,20 @@ GO
 
 ------------------------------------------------------------------------
 PRINT '--##  List of SQL Server Agent - Alerts'
+
 select * from  msdb.dbo.sysalerts 
 ------------------------------------------------------------------------
 PRINT '--##  List of SQL Server Agent - Operators'
+
 SELECT name, email_address, enabled FROM MSDB.dbo.sysoperators ORDER BY name
 ------------------------------------------------------------------------
 PRINT '--##  List of SSIS packages in MSDB'
+
 select name, description, createdate from msdb..sysssispackages where description not like 'System Data Collector Package'
 GO
 ------------------------------------------------------------------------
 PRINT '--##  Link Servers'
+
 SELECT * INTO #LinkInfo  FROM sys.servers WHERE is_linked ='1'
 
 SELECT 
@@ -780,6 +804,7 @@ FROM #LinkInfo
 -- ELSE
 -- BEGIN
 PRINT '--##  List all Linked Servers and their associated login'
+
 SELECT ss.server_id ,ss.name 
     , 'Server ' = Case ss.Server_id   when 0 then 'Current Server'   else 'Remote Server'   end
     , ss.data_source, ss.product , ss.provider  , ss.catalog  
@@ -791,10 +816,15 @@ SELECT ss.server_id ,ss.name
 FROM sys.Servers ss  
     LEFT JOIN sys.linked_logins sl ON ss.server_id = sl.server_id
     LEFT JOIN sys.server_principals ssp ON ssp.principal_id = sl.local_principal_id
---END
+GO
+
 ------------------------------------------------------------------------
 PRINT '--##  Script out the Logon Triggers of the server, if any exists'
-SELECT SSM.definition FROM sys.server_triggers AS ST JOIN sys.server_sql_modules AS SSM ON ST.object_id = SSM.object_id
+
+SELECT SSM.definition
+FROM sys.server_triggers AS ST
+    JOIN sys.server_sql_modules AS SSM ON ST.object_id = SSM.object_id
+
 ------------------------------------------------------------------------
 PRINT '--##  REPLICATION - List Publication or Subscription articles'
 
@@ -835,7 +865,7 @@ BEGIN
 END;
 
 ------------------------------------------------------------------------
-PRINT '--##  Database Mail Service Statu'
+PRINT '--##  Database Mail Service Status'
 
 CREATE TABLE #Database_Mail_Details2
     (principal_id VARCHAR(4)
@@ -925,8 +955,9 @@ SELECT db_name(database_id) as 'Mirror DB_Name',
     Mirroring_Connection_Timeout as 'Failover Timeout in seconds', 
     Mirroring_Redo_Queue, 
     Mirroring_Redo_Queue_Type 
-    INTO #DB_Mirror_Details
-    FROM sys.Database_mirroring WHERE mirroring_role is not null;
+        INTO #DB_Mirror_Details
+FROM sys.Database_mirroring
+WHERE mirroring_role is not null;
 
 -- IF (SELECT COUNT(*) FROM #DB_Mirror_Details) = 0
 -- BEGIN 
@@ -940,34 +971,63 @@ SELECT * FROM #DB_Mirror_Details
 
 ------------------------------------------------------------------------
 PRINT '--##  Database Log Shipping Status'
-CREATE TABLE #LogShipping
-    ([status] BIT
-    , [is_primary] BIT
-    , [server] sysname
-    , [database_name] sysname
-    , [time_since_last_backup] INT
-    , [last_backup_file] NVARCHAR(50)
-    , [backup_threshold] INT
-    , [is_backup_alert_enabled] BIT
-    , [time_since_last_copy] INT
-    , [last_copied_file] NVARCHAR(50)
-    , [time_since_last_restore] INT
-    , [last_restored_file]  NVARCHAR(50)
-    , [last_restored_latency] INT
-    , [restore_threshold] INT
-    , [is_restore_alert_enabled] BIT)
-INSERT INTO #LogShipping
-EXEC sp_help_log_shipping_monitor;
 
-IF (SELECT COUNT(*) FROM #LogShipping) = 0
-    BEGIN 
-        -- PRINT '** No Database Log Shipping Information Detection of ** '
-        SELECT * FROM #LogShipping WHERE 1 = 0
-    END
-    ELSE
-    BEGIN
-        SELECT * FROM #LogShipping
-    END
+IF (CONVERT(VARchar(30), SERVERPROPERTY('EDITION')) LIKE 'Express%')
+BEGIN
+    SELECT 
+          '' [status]
+        , '' [is_primary]
+        , '' [server]
+        , '' [database_name]
+        , '' [time_since_last_backup]
+        , '' [last_backup_file]
+        , '' [backup_threshold]
+        , '' [is_backup_alert_enabled]
+        , '' [time_since_last_copy]
+        , '' [last_copied_file]
+        , '' [time_since_last_restore]
+        , '' [last_restored_file]
+        , '' [last_restored_latency]
+        , '' [restore_threshold] 
+        , '' [is_restore_alert_enabled]
+    FROM SYS.objects
+    WHERE 1 = 0
+END    
+ELSE    
+BEGIN
+	CREATE TABLE #LogShipping
+    (   [status] BIT
+        , [is_primary] BIT
+        , [server] sysname
+        , [database_name] sysname
+        , [time_since_last_backup] INT
+        , [last_backup_file] NVARCHAR(50)
+        , [backup_threshold] INT
+        , [is_backup_alert_enabled] BIT
+        , [time_since_last_copy] INT
+        , [last_copied_file] NVARCHAR(50)
+        , [time_since_last_restore] INT
+        , [last_restored_file]  NVARCHAR(50)
+        , [last_restored_latency] INT
+        , [restore_threshold] INT
+        , [is_restore_alert_enabled] BIT
+    )
+    INSERT INTO #LogShipping
+    EXEC sp_help_log_shipping_monitor;
+    
+    SELECT * FROM #LogShipping
+
+    DROP TABLE #LogShipping
+END    
+-- IF (SELECT COUNT(*) FROM #LogShipping) = 0
+-- BEGIN 
+--     -- PRINT '** No Database Log Shipping Information Detection of ** '
+--     SELECT * FROM #LogShipping WHERE 1 = 0
+-- END
+-- ELSE
+-- BEGIN
+--     SELECT * FROM #LogShipping
+-- END
 
 ------------------------------------------------------------------------
 PRINT '--##  Report Server (SSRS) Reports Information'
@@ -1051,7 +1111,7 @@ BEGIN
                             WHEN '11.0' THEN '11'
                             WHEN '12.0' THEN '12'
                         END
-    SET @Instance ='MSSQL' + @InstanceVersion + '.' +  CONVERT(VARCHAR(50), SERVERPROPERTY('InstanceName'))
+    SET @Instance ='MSSQL' + @InstanceVersion + '.' +  CONVERT(VARCHAR(50), ISNULL(SERVERPROPERTY('InstanceName'), 'MSSQLSERVER')) 
     --PRINT @Instance
     --SET @Instance ='MSSQL10_50.SQLEXPRESS'
     SET @HkeyLocal=N'HKEY_LOCAL_MACHINE'
@@ -1082,22 +1142,17 @@ GO
 
 ------------------------------------------------------------------------
 -- Performing clean up
---DROP TABLE #KERBINFO;
 DROP TABLE #nodes;
---DROP TABLE #IP;
 DROP TABLE #SQL_Server_Settings;
 DROP TABLE #ServicesServiceStatus;    
 DROP TABLE #RegResult;    
 DROP TABLE #LinkInfo;
 DROP TABLE #HD_space;
 DROP TABLE #Last_Backup_Dates;
--- DROP TABLE #Failed_SQL_Jobs;
--- DROP TABLE #Disabled_Jobs;
 DROP TABLE #Database_Mail_Details;
 DROP TABLE #Database_Mail_Details2;
 DROP TABLE #Database_Mirror_Stats;
 DROP TABLE #DB_Mirror_Details;
-DROP TABLE #LogShipping;
 DROP TABLE #Databases_Details;
 
 GO
