@@ -679,32 +679,32 @@ HAVING dbname not in ('tempdb')
 ORDER BY DBName,username
 GO
 ------------------------------------------------------------------------
-PRINT CHAR(13) + CHAR(10) + '--##  Database Backup'
+-- PRINT CHAR(13) + CHAR(10) + '--##  Database Backup'
 
-SELECT     
-    B.name as Database_Name
-    , ISNULL(STR(ABS(DATEDIFF(day, GetDate()
-    , MAX(Backup_finish_date))))
-    , 'NEVER') as DaysSinceLastBackup
-    , ISNULL(Convert(char(10)
-    , MAX(backup_finish_date), 101)
-    , 'NEVER') as LastBackupDate
-        INTO #Last_Backup_Dates
-FROM master.dbo.sysdatabases B 
-    LEFT OUTER JOIN msdb.dbo.backupset A        ON A.database_name = B.name AND A.type = 'D' 
-GROUP BY B.Name 
-HAVING B.name not in ('tempdb')
-ORDER BY B.name;
+-- SELECT     
+--     B.name as Database_Name
+--     , ISNULL(STR(ABS(DATEDIFF(day, GetDate()
+--     , MAX(Backup_finish_date))))
+--     , 'NEVER') as DaysSinceLastBackup
+--     , ISNULL(Convert(char(10)
+--     , MAX(backup_finish_date), 101)
+--     , 'NEVER') as LastBackupDate
+--         INTO #Last_Backup_Dates
+-- FROM master.dbo.sysdatabases B 
+--     LEFT OUTER JOIN msdb.dbo.backupset A        ON A.database_name = B.name AND A.type = 'D' 
+-- GROUP BY B.Name 
+-- HAVING B.name not in ('tempdb')
+-- ORDER BY B.name;
 
-SELECT 
-     CONVERT(nvarchar(45),Database_Name) AS 'Database Name'
-    ,DaysSinceLastBackup AS 'Days Since Backup Date'
-    ,LastBackupDate AS 'Last Date Backed Up'
- FROM #Last_Backup_Dates
-    -- IF @@rowcount = 0 
-    -- BEGIN 
-    --     PRINT '** No SQL Backup Information ** '
-    -- END;
+-- SELECT 
+--      CONVERT(nvarchar(45),Database_Name) AS 'Database Name'
+--     ,DaysSinceLastBackup AS 'Days Since Backup Date'
+--     ,LastBackupDate AS 'Last Date Backed Up'
+--  FROM #Last_Backup_Dates
+--     -- IF @@rowcount = 0 
+--     -- BEGIN 
+--     --     PRINT '** No SQL Backup Information ** '
+--     -- END;
 ------------------------------------------------------------------------
 ------------------------------------------------------------------------
 PRINT CHAR(13) + CHAR(10) + '--##  Database Mail Service Status'
@@ -871,11 +871,12 @@ END
 --     SELECT * FROM #LogShipping
 -- END
 ------------------------------------------------------------------------
-
 PRINT CHAR(13) + CHAR(10) + '--##  SQL Job Status'
+
 SELECT name JobName
 	, CASE enabled WHEN 0 THEN 'N' ELSE 'Y' END EnableYN
 FROM msdb.dbo.sysjobs
+where name not in ('syspolicy_purge_history')
 ORDER BY name
 -- SELECT name
 --     INTO #Failed_SQL_Jobs
@@ -1007,14 +1008,14 @@ WHERE s.server_id <> 0
 GO
 
 ------------------------------------------------------------------------
-PRINT CHAR(13) + CHAR(10) + '--##  Script out the Logon Triggers of the server, if any exists'
+PRINT CHAR(13) + CHAR(10) + '--##  Script out the Logon Triggers'
 
 SELECT SSM.definition
 FROM sys.server_triggers AS ST
     JOIN sys.server_sql_modules AS SSM ON ST.object_id = SSM.object_id
 
 ------------------------------------------------------------------------
-PRINT CHAR(13) + CHAR(10) + '--##  REPLICATION - List Publication or Subscription articles'
+PRINT CHAR(13) + CHAR(10) + '--##  REPLICATION'
 
 IF EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE='BASE TABLE' AND TABLE_NAME='sysextendedarticlesview') 
 (
@@ -1030,7 +1031,7 @@ ELSE
     WHERE 1 = 0
 GO
 ------------------------------------------------------------------------
-PRINT CHAR(13) + CHAR(10) + '--##  SQL Mail Information'
+PRINT CHAR(13) + CHAR(10) + '--##  SQL Mail'
 
 CREATE TABLE #Database_Mail_Details
 (Status NVARCHAR(7))
@@ -1054,7 +1055,7 @@ END;
 
 
 ------------------------------------------------------------------------
-PRINT CHAR(13) + CHAR(10) + '--##  Report Server (SSRS) Reports Information'
+PRINT CHAR(13) + CHAR(10) + '--##  Report Server (SSRS) Reports'
 
 IF EXISTS (SELECT name FROM sys.databases where name = 'ReportServer')
 BEGIN
