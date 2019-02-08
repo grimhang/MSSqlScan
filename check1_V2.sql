@@ -557,7 +557,7 @@ BEGIN
 END
 
 ------------------------------------------------------------------------
-PRINT CHAR(13) + CHAR(10) + '--##  Database Information'
+PRINT CHAR(13) + CHAR(10) + '--##  Database'
 
 -- SELECT 
 --      D.database_id
@@ -573,6 +573,22 @@ PRINT CHAR(13) + CHAR(10) + '--##  Database Information'
 -- WHERE s.file_id = 1 
 --GO
 
+-- SELECT 
+--     D.database_id 'Database ID'
+--     , D.name AS 'DBName'
+-- 	, Max(D.collation_name)			AS 'Collation'
+--     , Max(D.compatibility_level)	AS 'Compatibility'
+--     , Max(D.user_access_desc)		AS 'User Access'
+--     , Max(D.state_desc)				AS 'Status'
+--     , Max(D.recovery_model_desc)	AS 'Recovery Model'    
+-- 	, SUM(CASE WHEN S.file_id <> 2 THEN size ELSE 0 END) * 8 / 1024		AS 'TotalDataDiskSpace_MB'
+-- 	, SUM(CASE WHEN S.file_id = 2 THEN size ELSE 0 END) * 8 / 1024	AS 'TotalLogDiskSpace_MB'
+-- FROM SYS.DATABASES D
+--     INNER JOIN sys.master_files S       ON D.database_id= S.database_id
+-- WHERE D.name NOT IN ('master', 'model', 'tempdb')
+-- GROUP BY D.database_id, D.[name]
+-- ORDER BY D.[name]
+
 SELECT 
     D.database_id 'Database ID'
     , D.name AS 'DBName'
@@ -583,14 +599,21 @@ SELECT
     , Max(D.recovery_model_desc)	AS 'Recovery Model'    
 	, SUM(CASE WHEN S.file_id <> 2 THEN size ELSE 0 END) * 8 / 1024		AS 'TotalDataDiskSpace_MB'
 	, SUM(CASE WHEN S.file_id = 2 THEN size ELSE 0 END) * 8 / 1024	AS 'TotalLogDiskSpace_MB'
+	, ISNULL(STR(ABS(DATEDIFF(day, GetDate()
+    , MAX(Backup_finish_date))))
+    , 'NEVER') as DaysSinceLastBackup
+    , ISNULL(Convert(char(10)
+    , MAX(backup_finish_date), 101)
+    , 'NEVER') as LastBackupDate
 FROM SYS.DATABASES D
     INNER JOIN sys.master_files S       ON D.database_id= S.database_id
+	LEFT OUTER JOIN msdb.dbo.backupset A        ON A.database_name = D.name AND A.type = 'D' 
 WHERE D.name NOT IN ('master', 'model', 'tempdb')
 GROUP BY D.database_id, D.[name]
 ORDER BY D.[name]
 
 ------------------------------------------------------------------------
-PRINT CHAR(13) + CHAR(10) + '--##  Database File Information'
+PRINT CHAR(13) + CHAR(10) + '--##  Database File'
 
 SELECT 
     D.name AS 'DBName'
@@ -602,7 +625,7 @@ ORDER BY D.[name], s.file_id
 
 GO
 ------------------------------------------------------------------------
-PRINT CHAR(13) + CHAR(10) + '--##  Database Collation type'
+--PRINT CHAR(13) + CHAR(10) + '--##  Database Collation type'
 
 --PRINT ' Case sensitivity Descriptions'
 --PRINT ' Case Insensitive = CI                Case Sensitive = CS'
@@ -619,17 +642,17 @@ PRINT CHAR(13) + CHAR(10) + '--##  Database Collation type'
 --     , CONVERT(nvarchar(35), COLLATION_NAME) as 'Collation Type'
 -- FROM #Collation
 -- go
-;WITH Collation_CTE (NAME, COLLATION_NAME)  
-AS  
-(  
-	SELECT NAME, COLLATION_NAME
-	FROM sys.Databases
-)  
-SELECT 
-      CONVERT(nvarchar(35), name) as 'Database Name'
-    , CONVERT(nvarchar(35), COLLATION_NAME) as 'Collation Type'
-FROM Collation_CTE
-GO
+-- ;WITH Collation_CTE (NAME, COLLATION_NAME)  
+-- AS  
+-- (  
+-- 	SELECT NAME, COLLATION_NAME
+-- 	FROM sys.Databases
+-- )  
+-- SELECT 
+--       CONVERT(nvarchar(35), name) as 'Database Name'
+--     , CONVERT(nvarchar(35), COLLATION_NAME) as 'Collation Type'
+-- FROM Collation_CTE
+-- GO
 ------------------------------------------------------------------------
 PRINT CHAR(13) + CHAR(10) + '--##  Database users Permissions'
 
@@ -656,7 +679,7 @@ HAVING dbname not in ('tempdb')
 ORDER BY DBName,username
 GO
 ------------------------------------------------------------------------
-PRINT CHAR(13) + CHAR(10) + '--##  Database Backup Information'
+PRINT CHAR(13) + CHAR(10) + '--##  Database Backup'
 
 SELECT     
     B.name as Database_Name
@@ -882,7 +905,7 @@ ORDER BY name
 -- END;
 
 ------------------------------------------------------------------------
-PRINT CHAR(13) + CHAR(10) + '--##  SQL Server Agent Job Step Info'
+PRINT CHAR(13) + CHAR(10) + '--##  SQL Server Agent Job Step'
 
 SELECT 
     j.[job_id] AS [JobID]
@@ -914,20 +937,22 @@ GO
 
 
 ------------------------------------------------------------------------
-PRINT CHAR(13) + CHAR(10) + '--##  List of SQL Server Agent - Alerts'
+PRINT CHAR(13) + CHAR(10) + '--##  SQLServerAgent_Alerts'
 
 select * from  msdb.dbo.sysalerts 
 ------------------------------------------------------------------------
-PRINT CHAR(13) + CHAR(10) + '--##  List of SQL Server Agent - Operators'
+PRINT CHAR(13) + CHAR(10) + '--##  SQLServerAgent_Operators'
 
 SELECT name, email_address, enabled FROM MSDB.dbo.sysoperators ORDER BY name
 ------------------------------------------------------------------------
-PRINT CHAR(13) + CHAR(10) + '--##  List of SSIS packages in MSDB'
+PRINT CHAR(13) + CHAR(10) + '--##  SSISPackagesInMSDB'
 
-select name, description, createdate from msdb..sysssispackages where description not like 'System Data Collector Package'
+select name, description, createdate
+from msdb..sysssispackages
+where description not like 'System Data Collector Package'
 GO
 ------------------------------------------------------------------------
-PRINT CHAR(13) + CHAR(10) + '--##  Link Servers'
+PRINT CHAR(13) + CHAR(10) + '--##  Linked Servers'
 
 SELECT * INTO #LinkInfo  FROM sys.servers WHERE is_linked ='1'
 
