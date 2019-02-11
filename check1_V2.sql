@@ -567,20 +567,17 @@ SELECT
     , Max(D.user_access_desc)		AS 'User Access'
     , Max(D.state_desc)				AS 'Status'
     , Max(D.recovery_model_desc)	AS 'Recovery Model'    
-	, SUM(CASE WHEN F.file_id <> 2 THEN CAST(F.size AS BIGINT) ELSE 0 END) * 8 / 1024		AS 'TotalDataDiskSpace_MB'  -- overflow때문에 cast 넣음
-	, SUM(CASE WHEN F.file_id = 2 THEN CAST(F.size AS BIGINT) ELSE 0 END) * 8 / 1024		AS 'TotalLogDiskSpace_MB'
-	, ISNULL(STR(ABS(DATEDIFF(day, GetDate()
-    , MAX(Backup_finish_date))))
-    , 'NEVER') as DaysSinceLastBackup
-    , ISNULL(Convert(char(10)
-    , MAX(backup_finish_date), 101)
-    , 'NEVER') as LastBackupDate
+	, SUM(CASE WHEN F.file_id <> 2 THEN CAST(F.size AS BIGINT) ELSE 0 END) * 8 / 1024		AS TotalDataDiskSpace_MB
+	, SUM(CASE WHEN F.file_id = 2 THEN CAST(F.size AS BIGINT) ELSE 0 END) * 8 / 1024		AS TotalLogDiskSpace_MB
+	, ISNULL(STR(ABS(DATEDIFF(day, GetDate(), MAX(B.Backup_finish_date)))), 'NEVER')		AS DaysSinceLastBackup
+    , ISNULL(Convert(char(10), MAX(B.backup_finish_date), 101), 'NEVER')					AS LastBackupDate
 FROM SYS.DATABASES D
-    INNER JOIN sys.master_files F       ON D.database_id= F.database_id
-	LEFT OUTER JOIN msdb.dbo.backupset A        ON A.database_name = D.name AND A.type = 'D' 
+    JOIN sys.master_files F					ON D.database_id= F.database_id
+	LEFT JOIN msdb.dbo.backupset B			ON B.database_name = D.name AND B.type = 'D' 
 WHERE D.name NOT IN ('master', 'model', 'tempdb')
 GROUP BY D.database_id, D.[name]
 ORDER BY D.[name]
+GO
 
 ------------------------------------------------------------------------
 PRINT CHAR(13) + CHAR(10) + '--##  Database File'
