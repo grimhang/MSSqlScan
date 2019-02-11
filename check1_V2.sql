@@ -236,32 +236,37 @@ ORDER BY ValSeq
 ------------------------------------------------------------------------
 PRINT CHAR(13) + CHAR(10) + '--##  Logins'
 
-select * from sys.server_principals where type in ('S', 'U') order by name
+select *
+	, CASE IS_SRVROLEMEMBER('sysadmin', name) WHEN 0 THEN '' ELSE 'Y' END SysAdminYN
+	, CASE IS_SRVROLEMEMBER('serveradmin', name) WHEN 0 THEN '' ELSE 'Y' END ServerAdminYN
+from sys.server_principals
+where type in ('S', 'U')
+order by name
 ------------------------------------------------------------------------
-PRINT CHAR(13) + CHAR(10) + '--##  Sysadmin Members'
+-- PRINT CHAR(13) + CHAR(10) + '--##  Sysadmin Members'
 
-SELECT 'Role'               = 'sysadmin'
-    , 'Login\[Member Name]' = CONVERT (NVARCHAR(50), name) COLLATE DATABASE_DEFAULT 
-FROM sys.server_principals
-WHERE IS_SRVROLEMEMBER('sysadmin', name) = 1
-ORDER BY 'Login\[Member Name]' 
+-- SELECT 'Role'               = 'sysadmin'
+--     , 'Login\[Member Name]' = CONVERT (NVARCHAR(50), name) COLLATE DATABASE_DEFAULT 
+-- FROM sys.server_principals
+-- WHERE IS_SRVROLEMEMBER('sysadmin', name) = 1
+-- ORDER BY 'Login\[Member Name]' 
 
 ------------------------------------------------------------------------
-PRINT CHAR(13) + CHAR(10) + '--##  Serveradmin Members'
+-- PRINT CHAR(13) + CHAR(10) + '--##  Serveradmin Members'
 
-IF (SELECT COUNT(*) FROM sys.server_principals WHERE (type ='R') and (name='serveradmin')) = 0
-BEGIN 
-    PRINT '    ** No ServerAdmin Users Detection of ** '
-END
-ELSE
-BEGIN
-    SELECT CONVERT (NVARCHAR(20),r.name) AS'Role'
-            , CONVERT (NVARCHAR(50),p.name)  AS 'Login\Member Name'
-    FROM    sys.server_principals r
-        JOIN sys.server_role_members m  ON    r.principal_id = m.role_principal_id
-        JOIN sys.server_principals p ON    p.principal_id = m.member_principal_id
-    WHERE    (r.type ='R') and (r.name='serveradmin')
-END
+-- IF (SELECT COUNT(*) FROM sys.server_principals WHERE (type ='R') and (name='serveradmin')) = 0
+-- BEGIN 
+--     PRINT '    ** No ServerAdmin Users Detection of ** '
+-- END
+-- ELSE
+-- BEGIN
+--     SELECT CONVERT (NVARCHAR(20),r.name) AS'Role'
+--             , CONVERT (NVARCHAR(50),p.name)  AS 'Login\Member Name'
+--     FROM    sys.server_principals r
+--         JOIN sys.server_role_members m  ON    r.principal_id = m.role_principal_id
+--         JOIN sys.server_principals p ON    p.principal_id = m.member_principal_id
+--     WHERE    (r.type ='R') and (r.name='serveradmin')
+-- END
 
 ------------------------------------------------------------------------
 PRINT CHAR(13) + CHAR(10) + '--##  Server Configuration' 
