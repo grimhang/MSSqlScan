@@ -559,36 +559,6 @@ END
 ------------------------------------------------------------------------
 PRINT CHAR(13) + CHAR(10) + '--##  Database'
 
--- SELECT 
---      D.database_id
---     ,D.[name]    
---     ,D.[create_date]
---     ,D.[compatibility_level] 
---     ,D.[user_access_desc]
---     ,D.[state_desc]
---     ,D.[recovery_model_desc]
---         INTO #Databases_Details
--- FROM SYS.DATABASES D 
---     INNER JOIN sys.master_files S       ON D.database_id= S.database_id
--- WHERE s.file_id = 1 
---GO
-
--- SELECT 
---     D.database_id 'Database ID'
---     , D.name AS 'DBName'
--- 	, Max(D.collation_name)			AS 'Collation'
---     , Max(D.compatibility_level)	AS 'Compatibility'
---     , Max(D.user_access_desc)		AS 'User Access'
---     , Max(D.state_desc)				AS 'Status'
---     , Max(D.recovery_model_desc)	AS 'Recovery Model'    
--- 	, SUM(CASE WHEN S.file_id <> 2 THEN size ELSE 0 END) * 8 / 1024		AS 'TotalDataDiskSpace_MB'
--- 	, SUM(CASE WHEN S.file_id = 2 THEN size ELSE 0 END) * 8 / 1024	AS 'TotalLogDiskSpace_MB'
--- FROM SYS.DATABASES D
---     INNER JOIN sys.master_files S       ON D.database_id= S.database_id
--- WHERE D.name NOT IN ('master', 'model', 'tempdb')
--- GROUP BY D.database_id, D.[name]
--- ORDER BY D.[name]
-
 SELECT 
     D.database_id 'Database ID'
     , D.name AS 'DBName'
@@ -597,8 +567,8 @@ SELECT
     , Max(D.user_access_desc)		AS 'User Access'
     , Max(D.state_desc)				AS 'Status'
     , Max(D.recovery_model_desc)	AS 'Recovery Model'    
-	, SUM(CASE WHEN S.file_id <> 2 THEN size ELSE 0 END) * 8 / 1024		AS 'TotalDataDiskSpace_MB'
-	, SUM(CASE WHEN S.file_id = 2 THEN size ELSE 0 END) * 8 / 1024	AS 'TotalLogDiskSpace_MB'
+	, SUM(CASE WHEN F.file_id <> 2 THEN CAST(F.size AS BIGINT) ELSE 0 END) * 8 / 1024		AS 'TotalDataDiskSpace_MB'  -- overflow때문에 cast 넣음
+	, SUM(CASE WHEN F.file_id = 2 THEN CAST(F.size AS BIGINT) ELSE 0 END) * 8 / 1024		AS 'TotalLogDiskSpace_MB'
 	, ISNULL(STR(ABS(DATEDIFF(day, GetDate()
     , MAX(Backup_finish_date))))
     , 'NEVER') as DaysSinceLastBackup
@@ -606,7 +576,7 @@ SELECT
     , MAX(backup_finish_date), 101)
     , 'NEVER') as LastBackupDate
 FROM SYS.DATABASES D
-    INNER JOIN sys.master_files S       ON D.database_id= S.database_id
+    INNER JOIN sys.master_files F       ON D.database_id= F.database_id
 	LEFT OUTER JOIN msdb.dbo.backupset A        ON A.database_name = D.name AND A.type = 'D' 
 WHERE D.name NOT IN ('master', 'model', 'tempdb')
 GROUP BY D.database_id, D.[name]
@@ -1173,7 +1143,7 @@ DROP TABLE #ServicesServiceStatus;
 DROP TABLE #RegResult;    
 DROP TABLE #LinkInfo;
 DROP TABLE #HD_space;
-DROP TABLE #Last_Backup_Dates;
+--DROP TABLE #Last_Backup_Dates;
 DROP TABLE #Database_Mail_Details;
 DROP TABLE #Database_Mail_Details2;
 DROP TABLE #Database_Mirror_Stats;
