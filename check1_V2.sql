@@ -194,30 +194,30 @@ SET @COLLATION = (SELECT CONVERT(varchar(30), SERVERPROPERTY('COLLATION')))
 ------------------------------------------------------------------------
 SET @ErrorLogLocation = (SELECT REPLACE(CAST(SERVERPROPERTY('ErrorLogFileName') AS VARCHAR(500)), 'ERRORLOG',''))
 ------------------------------------------------------------------------
-SET @TraceFileLocation = (SELECT REPLACE(CONVERT(VARCHAR(100),SERVERPROPERTY('ErrorLogFileName')), '\ERRORLOG','\log.trc'))
+-- SET @TraceFileLocation = 
 ------------------------------------------------------------------------
 SET @LinkServers = (SELECT COUNT(*) FROM sys.servers WHERE is_linked ='1')
 ------------------------------------------------------------------------
 SELECT KeyName, KeyVal
 FROM
 (
-    SELECT 1 ValSeq, 'SQLServerName\InstanceName' as KeyName, @SQLServerName KeyVal
-    UNION SELECT 2, 'Active Node', SERVERPROPERTY('ComputerNamePhysicalNetBIOS')
-    UNION SELECT 3, 'Machine Name' , @MachineName
-    UNION SELECT 4, 'Instance Name' , @InstanceName
-    UNION SELECT 5, 'Install Date' , CONVERT(varchar(200), @InstallDate, 120)
-    UNION SELECT 6, 'Production Name', @ProductVersion
-    UNION SELECT 7, 'SQL Server Edition and Bit Level', @EDITION
-    UNION SELECT 8, 'SQL Server Bit Level', CASE WHEN CHARINDEX('64-bit', @@VERSION) > 0 THEN '64bit' else '32bit' end
-    UNION SELECT 9, 'SQL Server Service Pack', @ProductLevel    
-    UNION SELECT 10, 'Logical CPU Count', @physical_CPU_Count
-    UNION SELECT 11, 'Max Server Memory(Megabytes)', @MaxMemory
-    UNION SELECT 12, 'Min Server Memory(Megabytes)', @MinMemory
-    UNION SELECT 13, 'Server IP Address', (SELECT TOP 1 Local_Net_Address FROM sys.dm_exec_connections WHERE net_transport = 'TCP' GROUP BY Local_Net_Address ORDER BY COUNT(*) DESC)
-    UNION SELECT 14, 'Port Number', @StaticPortNumber
-    UNION SELECT 15, 'Domain Name', @DomainName
-    UNION SELECT 16, 'Service Account name', @AccountName
-    UNION SELECT 17, 'Clustered Status', @ISClustered
+    SELECT 1 ValSeq, 'Clustered Status' as keyname, @ISClustered KeyVal
+    UNION SELECT 2, 'SQLServerName\InstanceName', @SQLServerName
+    UNION SELECT 3, 'Active Node', SERVERPROPERTY('ComputerNamePhysicalNetBIOS')
+    UNION SELECT 4, 'Machine Name' , @MachineName
+    UNION SELECT 5, 'Instance Name' , @InstanceName
+    UNION SELECT 6, 'Install Date' , CONVERT(varchar(200), @InstallDate, 120)
+    UNION SELECT 7, 'Production Name', @ProductVersion
+    UNION SELECT 8, 'SQL Server Edition and Bit Level', @EDITION
+    UNION SELECT 9, 'SQL Server Bit Level', CASE WHEN CHARINDEX('64-bit', @@VERSION) > 0 THEN '64bit' else '32bit' end
+    UNION SELECT 10, 'SQL Server Service Pack', @ProductLevel    
+    UNION SELECT 11, 'Logical CPU Count', @physical_CPU_Count
+    UNION SELECT 12, 'Max Server Memory(Megabytes)', @MaxMemory
+    UNION SELECT 13, 'Min Server Memory(Megabytes)', @MinMemory
+    UNION SELECT 14, 'Server IP Address', (SELECT TOP 1 Local_Net_Address FROM sys.dm_exec_connections WHERE net_transport = 'TCP' GROUP BY Local_Net_Address ORDER BY COUNT(*) DESC)
+    UNION SELECT 15, 'Port Number', @StaticPortNumber
+    UNION SELECT 16, 'Domain Name', @DomainName
+    UNION SELECT 17, 'Service Account name', @AccountName
     UNION SELECT 18, 'Node1 Name', @NodeName1
     UNION SELECT 19, 'Node2 Name', @NodeName2
     UNION SELECT 20, 'Kerberos', @KERB
@@ -227,10 +227,8 @@ FROM
     UNION SELECT 24, 'SQL Server Collation Type', @COLLATION
     UNION SELECT 25, 'SQL Server Engine Location', @SQLServerEnginePath
     UNION SELECT 26, 'SQL Server Errorlog Location', @ErrorLogLocation
-    UNION SELECT 27, 'SQL Server Default Trace Location', @TraceFileLocation
+    UNION SELECT 27, 'SQL Server Default Trace Location', (SELECT REPLACE(CONVERT(VARCHAR(100),SERVERPROPERTY('ErrorLogFileName')), '\ERRORLOG','\log.trc'))
     UNION SELECT 28, 'Number of Link Servers', @LinkServers
---UNION SELECT 'OS Version', RIGHT(@@version, LEN(@@version)- 3 -charindex (' ON ', @@VERSION))
---UNION SELECT 'OS Version', RTRIM(@@VERSION)
 ) temp
 ORDER BY ValSeq
 ------------------------------------------------------------------------
@@ -537,11 +535,6 @@ SELECT ServerName as 'SQL Server\Instance Name'
 --             , CONVERT(numeric(10, 2), size * 8 / 1024.0) "FileSize(MB)"
 -- FROM sys.master_files 
 -- GO
-------------------------------------------------------------------------
-
-
-------------------------------------------------------------------------
-
 
 ------------------------------------------------------------------------
 PRINT CHAR(13) + CHAR(10) + '--##  OS Hard Drive Space Available'
