@@ -9,7 +9,7 @@ SET @ScriptVersion = '1.0' -- Version number of this script
 
 DECLARE 
       @CurrentDate NVARCHAR(50) 	-- Current data/time
-    , @SQLServerName NVARCHAR(50) 	--Set SQL Server Name
+    --, @SQLServerName NVARCHAR(50) 	--Set SQL Server Name
     , @NodeName1 NVARCHAR(50) 		-- Name of node 1 if clustered
     , @NodeName2 NVARCHAR(50) 		-- Name of node 2 if clustered
     --, @NodeName3 NVARCHAR(50) /* 	-- remove remarks if more than 2 node cluster */
@@ -24,7 +24,7 @@ DECLARE
     --, @InstallDate NVARCHAR(20) -- Installation date of SQL Server
     , @InstallDate datetime 		-- Installation date of SQL Server
     , @ProductVersion NVARCHAR(30) 	-- Production version
-    , @MachineName NVARCHAR(30) 	-- Server name
+    --, @MachineName NVARCHAR(30) 	-- Server name
     , @ServerName NVARCHAR(30) 		-- SQL Server name
     , @Instance NVARCHAR(30) 		--  Instance name
     , @EDITION NVARCHAR(30) 		--SQL Server Edition
@@ -55,9 +55,9 @@ SELECT @ServerName "Server Name", @CurrentDate "Report Date"
 ----------------------------------------------------------------
 PRINT CHAR(13) + CHAR(10) + '--##  Summary'
 
-SET @SQLServerName = @@ServerName
+--SET @SQLServerName = @@ServerName
 SET @InstallDate = (SELECT  createdate FROM sys.syslogins where sid = 0x010100000000000512000000)
-SET @MachineName = (SELECT CONVERT(char(100), SERVERPROPERTY('MachineName'))) 
+--SET @MachineName = (SELECT CONVERT(char(100), SERVERPROPERTY('MachineName'))) 
 SET @InstanceName = CASE
 						WHEN  SERVERPROPERTY('InstanceName') IS NULL THEN 'Default Instance'
                         ELSE CONVERT(varchar(50), SERVERPROPERTY('InstanceName'))
@@ -76,8 +76,8 @@ IF @ProductVersion LIKE '10.0%'  SET @ProductVersion = 'SQL Server 2008'
 IF @ProductVersion LIKE '10.50%' SET @ProductVersion = 'SQL Server 2008R2' 
 IF @ProductVersion LIKE '11.0%'  SET @ProductVersion = 'SQL Server 2012' 
 IF @ProductVersion LIKE '12.0%'  SET @ProductVersion = 'SQL Server 2014' 
-IF @ProductVersion LIKE '14.0%'  SET @ProductVersion = 'SQL Server 2016'  -- for future use
-IF @ProductVersion LIKE '15.0%'  SET @ProductVersion = 'SQL Server 2017'  -- for future use
+IF @ProductVersion LIKE '13.0%'  SET @ProductVersion = 'SQL Server 2016'  -- for future use
+IF @ProductVersion LIKE '14.0%'  SET @ProductVersion = 'SQL Server 2017'  -- for future use
 ------------------------------------------------------------------------
 /* This section only works on SQL 2012 and higher */
 
@@ -202,9 +202,9 @@ SELECT KeyName, KeyVal
 FROM
 (
     SELECT 1 ValSeq, 'Clustered Status' as keyname, @ISClustered KeyVal
-    UNION SELECT 2, 'SQLServerName\InstanceName', @SQLServerName
+    UNION SELECT 2, 'SQLServerName\InstanceName', @@ServerName -- @SQLServerName
     UNION SELECT 3, 'Active Node', SERVERPROPERTY('ComputerNamePhysicalNetBIOS')
-    UNION SELECT 4, 'Machine Name' , @MachineName
+    UNION SELECT 4, 'Machine Name' , (SELECT CONVERT(char(100), SERVERPROPERTY('MachineName'))) --@MachineName
     UNION SELECT 5, 'Instance Name' , @InstanceName
     UNION SELECT 6, 'Install Date' , CONVERT(varchar(200), @InstallDate, 120)
     UNION SELECT 7, 'Production Name', @ProductVersion
