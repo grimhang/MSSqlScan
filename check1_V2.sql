@@ -40,7 +40,7 @@ DECLARE
     , @TotalMEMORYinBytes NVARCHAR(10) -- Total memory
     , @ErrorLogLocation VARCHAR(500) 	-- location of error logs
     , @TraceFileLocation VARCHAR(100) 	-- location of trace files
-    , @LinkServers VARCHAR(2) 			-- Number of linked servers found
+    --, @LinkServers VARCHAR(2) 			-- Number of linked servers found
 
 SET @CurrentDate = CONVERT(varchar(100), GETDATE(), 120)
 SET @ServerName = (SELECT @@SERVERNAME)
@@ -196,7 +196,7 @@ SET @ErrorLogLocation = (SELECT REPLACE(CAST(SERVERPROPERTY('ErrorLogFileName') 
 ------------------------------------------------------------------------
 -- SET @TraceFileLocation = 
 ------------------------------------------------------------------------
-SET @LinkServers = (SELECT COUNT(*) FROM sys.servers WHERE is_linked ='1')
+--SET @LinkServers = (SELECT COUNT(*) FROM sys.servers WHERE is_linked ='1')
 ------------------------------------------------------------------------
 SELECT KeyName, KeyVal
 FROM
@@ -228,7 +228,7 @@ FROM
     UNION SELECT 25, 'SQL Server Engine Location', @SQLServerEnginePath
     UNION SELECT 26, 'SQL Server Errorlog Location', @ErrorLogLocation
     UNION SELECT 27, 'SQL Server Default Trace Location', (SELECT REPLACE(CONVERT(VARCHAR(100),SERVERPROPERTY('ErrorLogFileName')), '\ERRORLOG','\log.trc'))
-    UNION SELECT 28, 'Number of Link Servers', @LinkServers
+    UNION SELECT 28, 'Number of Link Servers', (SELECT COUNT(*) FROM sys.servers WHERE is_linked ='1')
 ) temp
 ORDER BY ValSeq
 ------------------------------------------------------------------------
