@@ -97,16 +97,18 @@ ELSE
 
 ------------------------------------------------------------------------
 --cluster node names. Modify if there are more than 2 nodes in cluster
-SELECT NodeName
-INTO #nodes
-FROM sys.dm_os_cluster_nodes 
+-- SELECT NodeName
+-- INTO #nodes
+-- FROM sys.dm_os_cluster_nodes 
 
 IF @@rowcount = 0 
     SET @NodeName1 = 'NONE' -- NONE for no cluster
 ELSE
 BEGIN
-    SET @NodeName1 = (SELECT top 1 NodeName from #nodes order by NodeName)
-    SET @NodeName2 = (SELECT TOP 1 NodeName from #nodes where NodeName > @NodeName1)
+    -- SET @NodeName1 = (SELECT top 1 NodeName from #nodes order by NodeName)
+    -- SET @NodeName2 = (SELECT TOP 1 NodeName from #nodes where NodeName > @NodeName1)
+    SET @NodeName1 = (SELECT top 1 NodeName from sys.dm_os_cluster_nodes order by NodeName)
+    SET @NodeName2 = (SELECT TOP 1 NodeName from sys.dm_os_cluster_nodes  where NodeName > @NodeName1)
 END
 ------------------------------------------------------------------------
 IF (SELECT count(*) FROM sys.dm_exec_connections WHERE session_id = @@spid) > 0
@@ -210,8 +212,7 @@ GO
 ------------------------------------------------------------------------
 PRINT CHAR(13) + CHAR(10) + '--##  SQL Services Status' 
 
-CREATE TABLE #RegResult
-(ResultValue NVARCHAR(4))
+CREATE TABLE #RegResult (ResultValue NVARCHAR(4))
 
 CREATE TABLE #ServicesServiceStatus            
 ( 
@@ -224,40 +225,40 @@ CREATE TABLE #ServicesServiceStatus
 )
 
 DECLARE 
-    @ChkInstanceName nvarchar(128)                
-    ,@ChkSrvName nvarchar(128)                    
-    ,@TrueSrvName nvarchar(128)                    
-    ,@SQLSrv NVARCHAR(128)                        
-    ,@PhysicalSrvName NVARCHAR(128)            
-    ,@FTS nvarchar(128)                        
-    ,@RS nvarchar(128)                            
-    ,@SQLAgent NVARCHAR(128)                
-    ,@OLAP nvarchar(128)                    
-    ,@REGKEY NVARCHAR(128)                    
+    @ChkInstanceName nvarchar(128)
+    ,@ChkSrvName nvarchar(128)
+    ,@TrueSrvName nvarchar(128)
+    ,@SQLSrv NVARCHAR(128)
+    ,@PhysicalSrvName NVARCHAR(128)
+    ,@FTS nvarchar(128)
+    ,@RS nvarchar(128)
+    ,@SQLAgent NVARCHAR(128)
+    ,@OLAP nvarchar(128)
+    ,@REGKEY NVARCHAR(128)
 
 SET @PhysicalSrvName = CAST(SERVERPROPERTY('MachineName') AS VARCHAR(128)) 
 SET @ChkSrvName = CAST(SERVERPROPERTY('INSTANCENAME') AS VARCHAR(128)) 
-SET @ChkInstanceName = @@serverName
+SET @ChkInstanceName = @@ServerName
 
 IF @ChkSrvName IS NULL                            
-    BEGIN 
-        SET @TrueSrvName = 'MSQLSERVER'
-        SELECT @OLAP = 'MSSQLServerOLAPService'     
-        SELECT @FTS = 'MSFTESQL' 
-        SELECT @RS = 'ReportServer' 
-        SELECT @SQLAgent = 'SQLSERVERAGENT'
-        SELECT @SQLSrv = 'MSSQLSERVER'
-    END 
+BEGIN 
+    SET @TrueSrvName = 'MSQLSERVER'
+    SELECT @OLAP = 'MSSQLServerOLAPService'     
+    SELECT @FTS = 'MSFTESQL' 
+    SELECT @RS = 'ReportServer' 
+    SELECT @SQLAgent = 'SQLSERVERAGENT'
+    SELECT @SQLSrv = 'MSSQLSERVER'
+END 
 ELSE
-    BEGIN
-        SET @TrueSrvName =  CAST(SERVERPROPERTY('INSTANCENAME') AS VARCHAR(128)) 
-        SET @SQLSrv = '$'+@ChkSrvName
-         SELECT @OLAP = 'MSOLAP' + @SQLSrv    /*Setting up proper service name*/
-        SELECT @FTS = 'MSFTESQL' + @SQLSrv 
-        SELECT @RS = 'ReportServer' + @SQLSrv
-        SELECT @SQLAgent = 'SQLAgent' + @SQLSrv
-        SELECT @SQLSrv = 'MSSQL' + @SQLSrv
-    END 
+BEGIN
+    SET @TrueSrvName =  CAST(SERVERPROPERTY('INSTANCENAME') AS VARCHAR(128)) 
+    SET @SQLSrv = '$' + @ChkSrvName
+    SELECT @OLAP = 'MSOLAP' + @SQLSrv    /*Setting up proper service name*/
+    SELECT @FTS = 'MSFTESQL' + @SQLSrv 
+    SELECT @RS = 'ReportServer' + @SQLSrv
+    SELECT @SQLAgent = 'SQLAgent' + @SQLSrv
+    SELECT @SQLSrv = 'MSSQL' + @SQLSrv
+END 
 ;
 /* ---------------------------------- SQL Server Service Section ----------------------------------------------*/
 SET @REGKEY = 'System\CurrentControlSet\Services\' + @SQLSrv
@@ -268,40 +269,49 @@ IF (SELECT ResultValue FROM #RegResult) = 1
 BEGIN
     INSERT #ServicesServiceStatus (ServiceStatus)        
     EXEC xp_servicecontrol N'QUERYSTATE',@SQLSrv
+
     UPDATE #ServicesServiceStatus set ServiceName = 'MS SQL Server Service' where RowID = @@identity
     UPDATE #ServicesServiceStatus set ServerName = @TrueSrvName where RowID = @@identity
     UPDATE #ServicesServiceStatus set PhysicalSrverName = @PhysicalSrvName where RowID = @@identity
+    
     TRUNCATE TABLE #RegResult
 END
 ELSE 
 BEGIN
     INSERT INTO #ServicesServiceStatus (ServiceStatus) VALUES ('NOT INSTALLED')
+
     UPDATE #ServicesServiceStatus set ServiceName = 'MS SQL Server Service' where RowID = @@identity
     UPDATE #ServicesServiceStatus set ServerName = @TrueSrvName where RowID = @@identity
     UPDATE #ServicesServiceStatus set PhysicalSrverName = @PhysicalSrvName where RowID = @@identity
+
     TRUNCATE TABLE #RegResult
 END
 
 /* ---------------------------------- SQL Server Agent Service Section -----------------------------------------*/
 SET @REGKEY = 'System\CurrentControlSet\Services\' + @SQLAgent
 
-INSERT #RegResult ( ResultValue ) EXEC master.sys.xp_regread @rootkey='HKEY_LOCAL_MACHINE', @key=@REGKEY
+INSERT #RegResult ( ResultValue )
+EXEC master.sys.xp_regread @rootkey='HKEY_LOCAL_MACHINE', @key=@REGKEY
 
 IF (SELECT ResultValue FROM #RegResult) = 1 
 BEGIN
     INSERT #ServicesServiceStatus (ServiceStatus)        
     EXEC xp_servicecontrol N'QUERYSTATE',@SQLAgent
+
     UPDATE #ServicesServiceStatus set ServiceName = 'SQL Server Agent Service' where RowID = @@identity
     UPDATE #ServicesServiceStatus set ServerName = @TrueSrvName where RowID = @@identity
     UPDATE #ServicesServiceStatus set PhysicalSrverName = @PhysicalSrvName where RowID = @@identity
+
     TRUNCATE TABLE #RegResult
 END
 ELSE 
 BEGIN
     INSERT INTO #ServicesServiceStatus (ServiceStatus) VALUES ('NOT INSTALLED')
+
     UPDATE #ServicesServiceStatus set ServiceName = 'SQL Server Agent Service' where RowID = @@identity
     UPDATE #ServicesServiceStatus set ServerName = @TrueSrvName where RowID = @@identity    
     UPDATE #ServicesServiceStatus set PhysicalSrverName = @PhysicalSrvName where RowID = @@identity
+
     TRUNCATE TABLE #RegResult
 END
 
@@ -314,17 +324,21 @@ IF (SELECT ResultValue FROM #RegResult) = 1
 BEGIN
     INSERT #ServicesServiceStatus (ServiceStatus)        
     EXEC master.dbo.xp_servicecontrol N'QUERYSTATE',N'sqlbrowser'
+
     UPDATE #ServicesServiceStatus set ServiceName = 'SQL Browser Service - Instance Independent' where RowID = @@identity
     UPDATE #ServicesServiceStatus set ServerName = @TrueSrvName where RowID = @@identity
     UPDATE #ServicesServiceStatus set PhysicalSrverName = @PhysicalSrvName where RowID = @@identity
+
     TRUNCATE TABLE #RegResult
 END
 ELSE 
 BEGIN
     INSERT INTO #ServicesServiceStatus (ServiceStatus) VALUES ('NOT INSTALLED')
+
     UPDATE #ServicesServiceStatus set ServiceName = 'SQL Browser Service - Instance Independent' where RowID = @@identity
     UPDATE #ServicesServiceStatus set ServerName = @TrueSrvName where RowID = @@identity
     UPDATE #ServicesServiceStatus set PhysicalSrverName = @PhysicalSrvName where RowID = @@identity
+
     TRUNCATE TABLE #RegResult
 END
 
@@ -360,17 +374,21 @@ IF (SELECT ResultValue FROM #RegResult) = 1
 BEGIN
     INSERT #ServicesServiceStatus (ServiceStatus)        
     EXEC master.dbo.xp_servicecontrol N'QUERYSTATE',@RS
+
     UPDATE #ServicesServiceStatus set ServiceName = 'Reporting Service' where RowID = @@identity
     UPDATE #ServicesServiceStatus set ServerName = @TrueSrvName where RowID = @@identity
     UPDATE #ServicesServiceStatus set PhysicalSrverName = @PhysicalSrvName where RowID = @@identity
+
     TRUNCATE TABLE #RegResult
 END
 ELSE 
 BEGIN
     INSERT INTO #ServicesServiceStatus (ServiceStatus) VALUES ('NOT INSTALLED')
+
     UPDATE #ServicesServiceStatus set ServiceName = 'Reporting Service' where RowID = @@identity
     UPDATE #ServicesServiceStatus set ServerName = @TrueSrvName where RowID = @@identity
     UPDATE #ServicesServiceStatus set PhysicalSrverName = @PhysicalSrvName where RowID = @@identity
+
     TRUNCATE TABLE #RegResult
 END
 
@@ -391,17 +409,21 @@ IF (SELECT ResultValue FROM #RegResult) = 1
 BEGIN
     INSERT #ServicesServiceStatus (ServiceStatus)        
     EXEC master.dbo.xp_servicecontrol N'QUERYSTATE', @OLAP
+
     UPDATE #ServicesServiceStatus set ServiceName = 'Analysis Services' where RowID = @@identity
     UPDATE #ServicesServiceStatus set ServerName = @TrueSrvName where RowID = @@identity
     UPDATE #ServicesServiceStatus set PhysicalSrverName = @PhysicalSrvName where RowID = @@identity
+
     TRUNCATE TABLE #RegResult
 END
 ELSE 
 BEGIN
     INSERT INTO #ServicesServiceStatus (ServiceStatus) VALUES ('NOT INSTALLED')
+
     UPDATE #ServicesServiceStatus set ServiceName = 'Analysis Services' where RowID = @@identity
     UPDATE #ServicesServiceStatus set ServerName = @TrueSrvName where RowID = @@identity
     UPDATE #ServicesServiceStatus set PhysicalSrverName = @PhysicalSrvName where RowID = @@identity
+
     TRUNCATE TABLE #RegResult
 END
 
@@ -414,17 +436,21 @@ IF (SELECT ResultValue FROM #RegResult) = 1
 BEGIN
     INSERT #ServicesServiceStatus (ServiceStatus)        
     EXEC master.dbo.xp_servicecontrol N'QUERYSTATE',@FTS
+
     UPDATE #ServicesServiceStatus set ServiceName = 'Full Text Search Service' where RowID = @@identity
     UPDATE #ServicesServiceStatus set ServerName = @TrueSrvName where RowID = @@identity
     UPDATE #ServicesServiceStatus set PhysicalSrverName = @PhysicalSrvName where RowID = @@identity
+
     TRUNCATE TABLE #RegResult
 END
 ELSE 
 BEGIN
     INSERT INTO #ServicesServiceStatus (ServiceStatus) VALUES ('NOT INSTALLED')
+
     UPDATE #ServicesServiceStatus set ServiceName = 'Full Text Search Service' where RowID = @@identity
     UPDATE #ServicesServiceStatus set ServerName = @TrueSrvName where RowID = @@identity
     UPDATE #ServicesServiceStatus set PhysicalSrverName = @PhysicalSrvName where RowID = @@identity
+
     TRUNCATE TABLE #RegResult
 END
 
@@ -762,20 +788,24 @@ PRINT CHAR(13) + CHAR(10) + '--##  Report Server (SSRS) Reports'
 
 IF EXISTS (SELECT name FROM sys.databases where name = 'ReportServer')
 BEGIN
-        SELECT CONVERT(nvarchar(20),Rol.RoleName) AS 'Role Name'
-            ,CONVERT(nvarchar(35),Us.UserName) AS 'User Name'
-            ,CONVERT(nvarchar(35),Cat.[Name]) AS 'Report Name'
-            ,CASE Cat.Type WHEN 1 THEN 'Folder' WHEN 2 THEN 'Report' 
-                WHEN 3 THEN 'Resource' WHEN 4 THEN 'Linked Report' 
-                WHEN 3 THEN 'Data Source' ELSE '' END AS 'Catalog Type'
-            ,CONVERT(nvarchar(35),Cat.Description) AS'Description'
-        FROM reportserver.dbo.Catalog Cat 
-            INNER JOIN reportserver.dbo.Policies Pol ON Cat.PolicyID = Pol.PolicyID
-            INNER JOIN reportserver.dbo.PolicyUserRole PUR ON Pol.PolicyID = PUR.PolicyID 
-            INNER JOIN reportserver.dbo.Users Us ON PUR.UserID = Us.UserID 
-            INNER JOIN reportserver.dbo.Roles Rol ON PUR.RoleID = Rol.RoleID
-        WHERE   Cat.Type in (1,2)
-        ORDER BY Cat.PATH 
+    SELECT CONVERT(nvarchar(20),Rol.RoleName) AS 'Role Name'
+        ,CONVERT(nvarchar(35),Us.UserName) AS 'User Name'
+        ,CONVERT(nvarchar(35),Cat.[Name]) AS 'Report Name'
+        ,CASE Cat.Type
+            WHEN 1 THEN 'Folder'
+            WHEN 2 THEN 'Report' 
+            WHEN 3 THEN 'Resource'
+            WHEN 4 THEN 'Linked Report' 
+            WHEN 5 THEN 'Data Source' ELSE ''
+        END AS 'Catalog Type'
+        ,CONVERT(nvarchar(35),Cat.Description) AS'Description'
+    FROM reportserver.dbo.Catalog Cat 
+        INNER JOIN reportserver.dbo.Policies Pol        ON Cat.PolicyID = Pol.PolicyID
+        INNER JOIN reportserver.dbo.PolicyUserRole PUR  ON Pol.PolicyID = PUR.PolicyID 
+        INNER JOIN reportserver.dbo.Users Us            ON PUR.UserID = Us.UserID 
+        INNER JOIN reportserver.dbo.Roles Rol           ON PUR.RoleID = Rol.RoleID
+    WHERE Cat.Type in (1,2)
+    ORDER BY Cat.PATH 
 END
 ELSE
 BEGIN 
@@ -811,11 +841,11 @@ ELSE
 BEGIN
     ------------------------------------------------------------------------
     DECLARE @HkeyLocal nvarchar(18)
-    Declare @Instance varchar(100)
-    DECLARE @MSSqlServerRegPath nvarchar(200)
-    DECLARE @TcpPort nvarchar(100)
-    DECLARE @TcpDynamicPorts nvarchar(100)
-    DECLARE @InstanceVersion  varchar(100)
+        , @Instance varchar(100)
+        , @MSSqlServerRegPath nvarchar(200)
+        , @TcpPort nvarchar(100)
+        , @TcpDynamicPorts nvarchar(100)
+        , @InstanceVersion  varchar(100)
 
     SET @InstanceVersion = 
         CASE CONVERT(char(4), SERVERPROPERTY('ProductVersion'))
@@ -846,20 +876,18 @@ GO
 ------------------------------------------------------------------------
 PRINT CHAR(13) + CHAR(10) + '--##  Fulltext Info'
 
-SELECT * from sys.fulltext_indexes ;
+SELECT * from sys.fulltext_indexes;
 GO
 ------------------------------------------------------------------------
 PRINT CHAR(13) + CHAR(10) + '--##  List all System and Mirroring endpoints'
 
-select * from sys.endpoints 
+select * from sys.endpoints
 GO
 ------------------------------------------------------------------------
 -- Performing clean up
-DROP TABLE #nodes;
---DROP TABLE #SQL_Server_Settings;
+--DROP TABLE #nodes;
 DROP TABLE #ServicesServiceStatus;    
 DROP TABLE #RegResult;    
---DROP TABLE #LinkInfo;
 DROP TABLE #HD_space;
 DROP TABLE #Database_Mail_Details;
 DROP TABLE #Database_Mail_Details2;
