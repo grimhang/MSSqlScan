@@ -3,8 +3,8 @@ SET NOCOUNT ON;
 /* SQL Server Configuration Report  
 2018-01-18     Ver1 초기완성 버전
 --------------------------- Version Control -------------------------------*/
-DECLARE @ScriptVersion VARCHAR(4)
-SET @ScriptVersion = '1.0' -- Version number of this script
+-- DECLARE @ScriptVersion VARCHAR(4)
+-- SET @ScriptVersion = '1.0' -- Version number of this script
 /*-------------------------------------------------------------------------*/
 
 DECLARE 
@@ -32,7 +32,7 @@ DECLARE
     , @ISClustered NVARCHAR(20) 	-- System clustered
     , @ISIntegratedSecurityOnly NVARCHAR(50) -- Security level
     , @ISSingleUser NVARCHAR(20) 	-- System in Single User mode
-    , @COLLATION NVARCHAR(30)  		-- Collation type
+    --, @COLLATION NVARCHAR(30)  		-- Collation type
     , @physical_CPU_Count VARCHAR(4) -- CPU count
     , @EnvironmentType VARCHAR(15) 	-- Physical or Virtual
     , @MaxMemory NVARCHAR(10) 		-- Max memory
@@ -190,7 +190,7 @@ IF (SELECT CONVERT(int, SERVERPROPERTY('ISSingleUser'))) = 1
 ELSE
     SET @ISSingleUser = 'Multi User'
 ------------------------------------------------------------------------
-SET @COLLATION = (SELECT CONVERT(varchar(30), SERVERPROPERTY('COLLATION')))
+--SET @COLLATION = (SELECT CONVERT(varchar(30), SERVERPROPERTY('COLLATION')))
 ------------------------------------------------------------------------
 SET @ErrorLogLocation = (SELECT REPLACE(CAST(SERVERPROPERTY('ErrorLogFileName') AS VARCHAR(500)), 'ERRORLOG',''))
 ------------------------------------------------------------------------
@@ -224,7 +224,7 @@ FROM
     UNION SELECT 21, 'Security Mode', @ISIntegratedSecurityOnly 
     UNION SELECT 22, 'Audit Level', @AuditLvltxt
     UNION SELECT 23, 'User Mode', @ISSingleUser
-    UNION SELECT 24, 'SQL Server Collation Type', @COLLATION
+    UNION SELECT 24, 'SQL Server Collation Type', (SELECT CONVERT(varchar(30), SERVERPROPERTY('COLLATION')))
     UNION SELECT 25, 'SQL Server Engine Location', @SQLServerEnginePath
     UNION SELECT 26, 'SQL Server Errorlog Location', @ErrorLogLocation
     UNION SELECT 27, 'SQL Server Default Trace Location', (SELECT REPLACE(CONVERT(VARCHAR(100),SERVERPROPERTY('ErrorLogFileName')), '\ERRORLOG','\log.trc'))
