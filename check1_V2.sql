@@ -15,7 +15,7 @@ DECLARE
     --, @NodeName3 NVARCHAR(50) /* 	-- remove remarks if more than 2 node cluster */
     --, @NodeName4 NVARCHAR(50) /*-- remove remarks if more than 2 node cluster */
     , @AccountName NVARCHAR(50) 	-- Account name used
-    , @StaticPortNumber NVARCHAR(50) -- Static port number
+    --, @StaticPortNumber NVARCHAR(50) -- Static port number
     , @INSTANCENAME NVARCHAR(100) 	-- SQL Server Instance Name
     , @VALUENAME NVARCHAR(20) 		-- Detect account used in SQL 2005, see notes below
     , @KERB NVARCHAR(50) 			-- Is Kerberos used or not
@@ -109,11 +109,11 @@ SET @MinMemory = (select CONVERT(char(10), [value_in_use]) from  #SQL_Server_Set
 -- ORDER BY COUNT(*) DESC
 ------------------------------------------------------------------------
 --SET @StaticPortNumber = (SELECT local_tcp_port FROM sys.dm_exec_connections WHERE session_id = @@SPID)
-SELECT TOP 1 @StaticPortNumber = local_tcp_port
-FROM sys.dm_exec_connections
-WHERE net_transport = 'TCP'
-GROUP BY local_tcp_port
-ORDER BY COUNT(*) DESC
+-- SELECT TOP 1 @StaticPortNumber = local_tcp_port
+-- FROM sys.dm_exec_connections
+-- WHERE net_transport = 'TCP'
+-- GROUP BY local_tcp_port
+-- ORDER BY COUNT(*) DESC
 ------------------------------------------------------------------------
 SET @DomainName = DEFAULT_DOMAIN()
 ------------------------------------------------------------------------
@@ -144,7 +144,6 @@ BEGIN
     SET @NodeName1 = (SELECT top 1 NodeName from #nodes order by NodeName)
     SET @NodeName2 = (SELECT TOP 1 NodeName from #nodes where NodeName > @NodeName1)
 END
-
 ------------------------------------------------------------------------
 IF (SELECT count(*) FROM sys.dm_exec_connections WHERE session_id = @@spid) > 0
     SET @KERB = 'Kerberos not used in TCP network transport'
@@ -202,7 +201,7 @@ FROM
     UNION SELECT 12, 'Max Server Memory(Megabytes)', @MaxMemory
     UNION SELECT 13, 'Min Server Memory(Megabytes)', @MinMemory
     UNION SELECT 14, 'Server IP Address', (SELECT TOP 1 Local_Net_Address FROM sys.dm_exec_connections WHERE net_transport = 'TCP' GROUP BY Local_Net_Address ORDER BY COUNT(*) DESC)
-    UNION SELECT 15, 'Port Number', @StaticPortNumber
+    UNION SELECT 15, 'Port Number', (SELECT TOP 1 local_tcp_port FROM sys.dm_exec_connections WHERE net_transport = 'TCP' GROUP BY local_tcp_port ORDER BY COUNT(*) DESC)
     UNION SELECT 16, 'Domain Name', @DomainName
     UNION SELECT 17, 'Service Account name', @AccountName
     UNION SELECT 18, 'Node1 Name', @NodeName1
@@ -228,39 +227,12 @@ from sys.server_principals
 where type in ('S', 'U')
 order by name
 ------------------------------------------------------------------------
--- PRINT CHAR(13) + CHAR(10) + '--##  Sysadmin Members'
-
--- SELECT 'Role'               = 'sysadmin'
---     , 'Login\[Member Name]' = CONVERT (NVARCHAR(50), name) COLLATE DATABASE_DEFAULT 
--- FROM sys.server_principals
--- WHERE IS_SRVROLEMEMBER('sysadmin', name) = 1
--- ORDER BY 'Login\[Member Name]' 
-
-------------------------------------------------------------------------
--- PRINT CHAR(13) + CHAR(10) + '--##  Serveradmin Members'
-
--- IF (SELECT COUNT(*) FROM sys.server_principals WHERE (type ='R') and (name='serveradmin')) = 0
--- BEGIN 
---     PRINT '    ** No ServerAdmin Users Detection of ** '
--- END
--- ELSE
--- BEGIN
---     SELECT CONVERT (NVARCHAR(20),r.name) AS'Role'
---             , CONVERT (NVARCHAR(50),p.name)  AS 'Login\Member Name'
---     FROM    sys.server_principals r
---         JOIN sys.server_role_members m  ON    r.principal_id = m.role_principal_id
---         JOIN sys.server_principals p ON    p.principal_id = m.member_principal_id
---     WHERE    (r.type ='R') and (r.name='serveradmin')
--- END
-
-------------------------------------------------------------------------
 PRINT CHAR(13) + CHAR(10) + '--##  Server Configuration' 
 
 SELECT [name]                               AS 'Configuration Setting'
     , (CONVERT (CHAR(20),[value_in_use] ))  AS 'Value in Use'
 FROM #SQL_Server_Settings
 GO
-
 ------------------------------------------------------------------------
 PRINT CHAR(13) + CHAR(10) + '--##  Automatically executes on startup Code'
 
@@ -271,20 +243,6 @@ SELECT CONVERT (NVARCHAR(35), name) AS 'Name'
 FROM sys.procedures
 WHERE is_auto_executed = 1
 GO
--- IF (SELECT COUNT(*) FROM sys.procedures WHERE is_auto_executed = 1) = 0
--- BEGIN 
---     PRINT '** No code that automatically execute on startup Detection of ** '
--- END
--- ELSE
--- BEGIN
---     SELECT CONVERT (NVARCHAR(35), name) AS 'Name'
---                 , CONVERT (NVARCHAR(25), type_desc) AS 'Type'
---                 ,  create_date AS 'Created Date'
---                 ,  modify_date AS 'Modified Date'
---     FROM sys.procedures
---     WHERE is_auto_executed = 1
--- END
-
 ------------------------------------------------------------------------
 PRINT CHAR(13) + CHAR(10) + '--##  SQL Services Status' 
 
@@ -511,17 +469,6 @@ SELECT ServerName as 'SQL Server\Instance Name'
             , ServiceStatus as 'Service Status'
             , StatusDateTime as 'Status Date\Time'
             FROM  #ServicesServiceStatus;        
-------------------------------------------------------------------------
--- PRINT CHAR(13) + CHAR(10) + '--##  Location of Database files'
-
--- SELECT CONVERT(NVARCHAR(3), database_id) AS 'Database ID'
---             , DB_NAME(database_id) AS 'Database Name'
---             , CONVERT(NVARCHAR(45), name) AS 'DB Logical Name'            
---             , CONVERT(NVARCHAR(100), physical_name) AS 'Physical Location'
---             , CONVERT(NVARCHAR(16), type_desc) AS 'Type'
---             , CONVERT(numeric(10, 2), size * 8 / 1024.0) "FileSize(MB)"
--- FROM sys.master_files 
--- GO
 
 ------------------------------------------------------------------------
 PRINT CHAR(13) + CHAR(10) + '--##  OS Hard Drive Space Available'
@@ -577,35 +524,6 @@ ORDER BY D.[name], s.file_id
 
 GO
 ------------------------------------------------------------------------
---PRINT CHAR(13) + CHAR(10) + '--##  Database Collation type'
-
---PRINT ' Case sensitivity Descriptions'
---PRINT ' Case Insensitive = CI                Case Sensitive = CS'
---PRINT ' Accent Insensitive = AI            Accent Sensitive = AS'
---PRINT ' Kanatype Insensitive = null        Kanatype Sensitive = KS'
---PRINT ' Width Insensitive = null            Width Sensitive = WS'
-
--- SELECT NAME, COLLATION_NAME
--- 	INTO #Collation
--- FROM sys.Databases ORDER BY DATABASE_ID ASC;
-
--- SELECT 
---       CONVERT(nvarchar(35), name) as 'Database Name'
---     , CONVERT(nvarchar(35), COLLATION_NAME) as 'Collation Type'
--- FROM #Collation
--- go
--- ;WITH Collation_CTE (NAME, COLLATION_NAME)  
--- AS  
--- (  
--- 	SELECT NAME, COLLATION_NAME
--- 	FROM sys.Databases
--- )  
--- SELECT 
---       CONVERT(nvarchar(35), name) as 'Database Name'
---     , CONVERT(nvarchar(35), COLLATION_NAME) as 'Collation Type'
--- FROM Collation_CTE
--- GO
-------------------------------------------------------------------------
 PRINT CHAR(13) + CHAR(10) + '--##  Database users Permissions'
 
 DECLARE @DB_USers TABLE(DBName sysname, UserName sysname, LoginType sysname, AssociatedRole varchar(max),create_date datetime,modify_date datetime)
@@ -630,34 +548,6 @@ GROUP BY dbname,username ,logintype ,create_date ,modify_date
 HAVING dbname not in ('tempdb')
 ORDER BY DBName,username
 GO
-------------------------------------------------------------------------
--- PRINT CHAR(13) + CHAR(10) + '--##  Database Backup'
-
--- SELECT     
---     B.name as Database_Name
---     , ISNULL(STR(ABS(DATEDIFF(day, GetDate()
---     , MAX(Backup_finish_date))))
---     , 'NEVER') as DaysSinceLastBackup
---     , ISNULL(Convert(char(10)
---     , MAX(backup_finish_date), 101)
---     , 'NEVER') as LastBackupDate
---         INTO #Last_Backup_Dates
--- FROM master.dbo.sysdatabases B 
---     LEFT OUTER JOIN msdb.dbo.backupset A        ON A.database_name = B.name AND A.type = 'D' 
--- GROUP BY B.Name 
--- HAVING B.name not in ('tempdb')
--- ORDER BY B.name;
-
--- SELECT 
---      CONVERT(nvarchar(45),Database_Name) AS 'Database Name'
---     ,DaysSinceLastBackup AS 'Days Since Backup Date'
---     ,LastBackupDate AS 'Last Date Backed Up'
---  FROM #Last_Backup_Dates
---     -- IF @@rowcount = 0 
---     -- BEGIN 
---     --     PRINT '** No SQL Backup Information ** '
---     -- END;
-------------------------------------------------------------------------
 ------------------------------------------------------------------------
 PRINT CHAR(13) + CHAR(10) + '--##  Database Mail Service Status'
 
@@ -684,13 +574,6 @@ SELECT
     ,is_default
 FROM #Database_Mail_Details2
 
---IF @@rowcount = 0 
---BEGIN 
---    --PRINT ' ** No SQL Mail Service Details Information **'
---    SELECT * FROM #Database_Mail_Details2 WHERE 1 =0
-
---END;
-
 ------------------------------------------------------------------------
 PRINT CHAR(13) + CHAR(10) + '--##  Database Mirroring Status'
 
@@ -703,17 +586,10 @@ SELECT DB.name,
 FROM sys.databases DB
     JOIN sys.database_mirroring MIRROR      ON DB.database_id=MIRROR.database_id WHERE DB.database_id > 4 ORDER BY DB.NAME;
 
--- IF (SELECT COUNT(*) FROM #Database_Mirror_Stats) = 0
--- BEGIN
---         PRINT ' ** No Mirroring Information Detection of **'
-        
--- END
--- ELSE
--- BEGIN
 SELECT CONVERT(nvarchar(35),name)   AS 'Database Name'
     ,MirroringState                 AS 'Mirroring State'
 FROM #Database_Mirror_Stats
---END;
+
 ------------------------------------------------------------------------
 PRINT CHAR(13) + CHAR(10) + '--##  Database Mirroring Database'
 
