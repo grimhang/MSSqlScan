@@ -625,19 +625,12 @@ SELECT db_name(database_id) as 'Mirror DB_Name',
     Mirroring_Connection_Timeout as 'Failover Timeout in seconds', 
     Mirroring_Redo_Queue, 
     Mirroring_Redo_Queue_Type 
-        INTO #DB_Mirror_Details
+--        INTO #DB_Mirror_Details
 FROM sys.Database_mirroring
 WHERE mirroring_role is not null;
 
--- IF (SELECT COUNT(*) FROM #DB_Mirror_Details) = 0
--- BEGIN 
---     --PRINT ' ** No Mirroring Configuration Information Detection of**'
---     SELECT * FROM #DB_Mirror_Details WHERE 1 = 0
--- END
--- ELSE
--- BEGIN
-SELECT * FROM #DB_Mirror_Details
---END
+--SELECT * FROM #DB_Mirror_Details
+
 
 ------------------------------------------------------------------------
 PRINT CHAR(13) + CHAR(10) + '--##  Database Log Shipping Status'
@@ -1005,7 +998,7 @@ DROP TABLE #HD_space;
 DROP TABLE #Database_Mail_Details;
 DROP TABLE #Database_Mail_Details2;
 DROP TABLE #Database_Mirror_Stats;
-DROP TABLE #DB_Mirror_Details;
+--DROP TABLE #DB_Mirror_Details;
 --DROP TABLE #Databases_Details;
 
 GO
