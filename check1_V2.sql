@@ -27,7 +27,7 @@ DECLARE
     , @MaxMemory NVARCHAR(10) 		-- Max memory
     , @MinMemory NVARCHAR(10) 		-- Min memory
     , @TotalMEMORYinBytes NVARCHAR(10) -- Total memory
-    , @ErrorLogLocation VARCHAR(500) 	-- location of error logs
+--    , @ErrorLogLocation VARCHAR(500) 	-- location of error logs
     , @TraceFileLocation VARCHAR(100) 	-- location of trace files
 
 SET @CurrentDate = CONVERT(varchar(100), GETDATE(), 120)
@@ -62,18 +62,18 @@ IF @ProductVersion LIKE '11.0%'  SET @ProductVersion = 'SQL Server 2012'
 IF @ProductVersion LIKE '12.0%'  SET @ProductVersion = 'SQL Server 2014' 
 IF @ProductVersion LIKE '13.0%'  SET @ProductVersion = 'SQL Server 2016'  -- for future use
 IF @ProductVersion LIKE '14.0%'  SET @ProductVersion = 'SQL Server 2017'  -- for future use
-------------------------------------------------------------------------
+
 /* This section only works on SQL 2012 and higher */
 
-SELECT 
-         [name]
-        ,[description]
-        ,[value] 
-        ,[minimum] 
-        ,[maximum] 
-        ,[value_in_use]
-INTO #SQL_Server_Settings
-FROM master.sys.configurations;        
+-- SELECT 
+--     [name]
+--     ,[description]
+--     ,[value] 
+--     ,[minimum] 
+--     ,[maximum] 
+--     ,[value_in_use]
+-- INTO #SQL_Server_Settings
+-- FROM master.sys.configurations;        
 
 --SET @MaxMemory = (select CONVERT(char(10), [value_in_use]) from  #SQL_Server_Settings where name = 'max server memory (MB)')
 --SET @MinMemory = (select CONVERT(char(10), [value_in_use]) from  #SQL_Server_Settings where name = 'min server memory (MB)')
@@ -97,11 +97,12 @@ ELSE
 
 ------------------------------------------------------------------------
 --cluster node names. Modify if there are more than 2 nodes in cluster
-SELECT NodeName INTO #nodes FROM sys.dm_os_cluster_nodes 
+SELECT NodeName
+INTO #nodes
+FROM sys.dm_os_cluster_nodes 
+
 IF @@rowcount = 0 
-BEGIN 
     SET @NodeName1 = 'NONE' -- NONE for no cluster
-END
 ELSE
 BEGIN
     SET @NodeName1 = (SELECT top 1 NodeName from #nodes order by NodeName)
@@ -120,9 +121,9 @@ ELSE
     SET @ISIntegratedSecurityOnly = 'SQL Server Authentication Security Mode'
 ------------------------------------------------------------------------
 DECLARE @AuditLevel int,
-                @AuditLvltxt VARCHAR(50)
-EXEC MASTER.dbo.xp_instance_regread N'HKEY_LOCAL_MACHINE', 
-                    N'Software\Microsoft\MSSQLServer\MSSQLServer', N'AuditLevel', @AuditLevel OUTPUT
+    @AuditLvltxt VARCHAR(50)
+    
+EXEC MASTER.dbo.xp_instance_regread N'HKEY_LOCAL_MACHINE', N'Software\Microsoft\MSSQLServer\MSSQLServer', N'AuditLevel', @AuditLevel OUTPUT
 
 SELECT @AuditLvltxt =
 	CASE 
@@ -133,10 +134,10 @@ SELECT @AuditLvltxt =
     	ELSE 'Unknown'
     END
 ------------------------------------------------------------------------
-DECLARE @ImagePath varchar(500), @SQLServerEnginePath varchar(500)
+DECLARE @ImagePath varchar(500)
+    , @SQLServerEnginePath varchar(500)
 
-EXEC MASTER.dbo.xp_instance_regread N'HKEY_LOCAL_MACHINE', 
-                    N'SYSTEM\CurrentControlSet\Services\MSSQLSERVER', N'ImagePath', @ImagePath OUTPUT
+EXEC MASTER.dbo.xp_instance_regread N'HKEY_LOCAL_MACHINE', N'SYSTEM\CurrentControlSet\Services\MSSQLSERVER', N'ImagePath', @ImagePath OUTPUT
 
 SET @SQLServerEnginePath = REPLACE(SUBSTRING(@ImagePath, 2, CHARINDEX('"',  @ImagePath, 2) - 2), 'sqlservr.exe', '')
 ------------------------------------------------------------------------
@@ -145,39 +146,39 @@ IF (SELECT CONVERT(int, SERVERPROPERTY('ISSingleUser'))) = 1
 ELSE
     SET @ISSingleUser = 'Multi User'
 ------------------------------------------------------------------------
-SET @ErrorLogLocation = (SELECT REPLACE(CAST(SERVERPROPERTY('ErrorLogFileName') AS VARCHAR(500)), 'ERRORLOG',''))
+--SET @ErrorLogLocation = (SELECT REPLACE(CAST(SERVERPROPERTY('ErrorLogFileName') AS VARCHAR(500)), 'ERRORLOG',''))
 ------------------------------------------------------------------------
 SELECT KeyName, KeyVal
 FROM
 (
-    SELECT 1 ValSeq, 'Clustered Status' as keyname, @ISClustered KeyVal
-    UNION SELECT 2, 'SQLServerName\InstanceName', @@ServerName -- @SQLServerName
-    UNION SELECT 3, 'Active Node', SERVERPROPERTY('ComputerNamePhysicalNetBIOS')
-    UNION SELECT 4, 'Machine Name' , (SELECT CONVERT(char(100), SERVERPROPERTY('MachineName'))) --@MachineName
-    UNION SELECT 5, 'Instance Name' , @InstanceName
-    UNION SELECT 6, 'Install Date' , CONVERT(varchar(200), @InstallDate, 120)
-    UNION SELECT 7, 'Production Name', @ProductVersion
-    UNION SELECT 8, 'SQL Server Edition and Bit Level', @EDITION
-    UNION SELECT 9, 'SQL Server Bit Level', CASE WHEN CHARINDEX('64-bit', @@VERSION) > 0 THEN '64bit' else '32bit' end
-    UNION SELECT 10, 'SQL Server Service Pack', @ProductLevel    
-    UNION SELECT 11, 'Logical CPU Count', @physical_CPU_Count
-    UNION SELECT 12, 'Max Server Memory(Megabytes)', @MaxMemory
-    UNION SELECT 13, 'Min Server Memory(Megabytes)', @MinMemory
-    UNION SELECT 14, 'Server IP Address', (SELECT TOP 1 Local_Net_Address FROM sys.dm_exec_connections WHERE net_transport = 'TCP' GROUP BY Local_Net_Address ORDER BY COUNT(*) DESC)
-    UNION SELECT 15, 'Port Number', (SELECT TOP 1 local_tcp_port FROM sys.dm_exec_connections WHERE net_transport = 'TCP' GROUP BY local_tcp_port ORDER BY COUNT(*) DESC)
-    UNION SELECT 16, 'Domain Name', @DomainName
-    UNION SELECT 17, 'Service Account name', @AccountName
-    UNION SELECT 18, 'Node1 Name', @NodeName1
-    UNION SELECT 19, 'Node2 Name', @NodeName2
-    UNION SELECT 20, 'Kerberos', @KERB
-    UNION SELECT 21, 'Security Mode', @ISIntegratedSecurityOnly 
-    UNION SELECT 22, 'Audit Level', @AuditLvltxt
-    UNION SELECT 23, 'User Mode', @ISSingleUser
-    UNION SELECT 24, 'SQL Server Collation Type', (SELECT CONVERT(varchar(30), SERVERPROPERTY('COLLATION')))
-    UNION SELECT 25, 'SQL Server Engine Location', @SQLServerEnginePath
-    UNION SELECT 26, 'SQL Server Errorlog Location', @ErrorLogLocation
-    UNION SELECT 27, 'SQL Server Default Trace Location', (SELECT REPLACE(CONVERT(VARCHAR(100),SERVERPROPERTY('ErrorLogFileName')), '\ERRORLOG','\log.trc'))
-    UNION SELECT 28, 'Number of Link Servers', (SELECT COUNT(*) FROM sys.servers WHERE is_linked ='1')
+    SELECT 1 ValSeq, 'Clustered Status' as keyname      , @ISClustered KeyVal
+    UNION SELECT 2, 'SQLServerName\InstanceName'        , @@ServerName -- @SQLServerName
+    UNION SELECT 3, 'Active Node'                       , SERVERPROPERTY('ComputerNamePhysicalNetBIOS')
+    UNION SELECT 4, 'Machine Name'                      , (SELECT CONVERT(char(100), SERVERPROPERTY('MachineName'))) --@MachineName
+    UNION SELECT 5, 'Instance Name'                     , @InstanceName
+    UNION SELECT 6, 'Install Date'                      , CONVERT(varchar(200), @InstallDate, 120)
+    UNION SELECT 7, 'Production Name'                   , @ProductVersion
+    UNION SELECT 8, 'SQL Server Edition and Bit Level'  , @EDITION
+    UNION SELECT 9, 'SQL Server Bit Level'              , CASE WHEN CHARINDEX('64-bit', @@VERSION) > 0 THEN '64bit' else '32bit' end
+    UNION SELECT 10, 'SQL Server Service Pack'          , @ProductLevel    
+    UNION SELECT 11, 'Logical CPU Count'                , @physical_CPU_Count
+    UNION SELECT 12, 'Max Server Memory(Megabytes)'     , @MaxMemory
+    UNION SELECT 13, 'Min Server Memory(Megabytes)'     , @MinMemory
+    UNION SELECT 14, 'Server IP Address'                , (SELECT TOP 1 Local_Net_Address FROM sys.dm_exec_connections WHERE net_transport = 'TCP' GROUP BY Local_Net_Address ORDER BY COUNT(*) DESC)
+    UNION SELECT 15, 'Port Number'                      , (SELECT TOP 1 local_tcp_port FROM sys.dm_exec_connections WHERE net_transport = 'TCP' GROUP BY local_tcp_port ORDER BY COUNT(*) DESC)
+    UNION SELECT 16, 'Domain Name'                      , @DomainName
+    UNION SELECT 17, 'Service Account name'             , @AccountName
+    UNION SELECT 18, 'Node1 Name'                       , @NodeName1
+    UNION SELECT 19, 'Node2 Name'                       , @NodeName2
+    UNION SELECT 20, 'Kerberos'                         , @KERB
+    UNION SELECT 21, 'Security Mode'                    , @ISIntegratedSecurityOnly 
+    UNION SELECT 22, 'Audit Level'                      , @AuditLvltxt
+    UNION SELECT 23, 'User Mode'                        , @ISSingleUser
+    UNION SELECT 24, 'SQL Server Collation Type'        , (SELECT CONVERT(varchar(30), SERVERPROPERTY('COLLATION')))
+    UNION SELECT 25, 'SQL Server Engine Location'       , @SQLServerEnginePath
+    UNION SELECT 26, 'SQL Server Errorlog Location'     , (SELECT REPLACE(CAST(SERVERPROPERTY('ErrorLogFileName') AS VARCHAR(500)), 'ERRORLOG',''))
+    UNION SELECT 27, 'SQL Server Default Trace Location'    , (SELECT REPLACE(CONVERT(VARCHAR(100),SERVERPROPERTY('ErrorLogFileName')), '\ERRORLOG','\log.trc'))
+    UNION SELECT 28, 'Number of Link Servers'               , (SELECT COUNT(*) FROM sys.servers WHERE is_linked ='1')
 ) temp
 ORDER BY ValSeq
 ------------------------------------------------------------------------
@@ -446,12 +447,7 @@ EXEC master.sys.xp_fixeddrives;
 SELECT Drive AS 'Drive Letter'
     ,[MB free]  AS 'Free Disk Space (Megabytes)'
 FROM #HD_space
-
--- IF @@rowcount = 0 
--- BEGIN 
---     PRINT '** No Hard Drive Information ** '
--- END
-
+GO
 ------------------------------------------------------------------------
 PRINT CHAR(13) + CHAR(10) + '--##  Database'
 
@@ -474,7 +470,6 @@ WHERE D.name NOT IN ('master', 'model', 'tempdb')
 GROUP BY D.database_id, D.[name]
 ORDER BY D.[name]
 GO
-
 ------------------------------------------------------------------------
 PRINT CHAR(13) + CHAR(10) + '--##  Database File'
 
@@ -549,7 +544,6 @@ FROM
             WHEN MIRROR.mirroring_state is NULL THEN 'Database Mirroring not configured and/or set'
             ELSE 'Mirroring is configured and/or set'
         END AS MirroringState
-            --INTO #Database_Mirror_Stats
     FROM sys.databases DB
     JOIN sys.database_mirroring MIRROR      ON DB.database_id=MIRROR.database_id WHERE DB.database_id > 4 
 ) T
@@ -823,14 +817,16 @@ BEGIN
     DECLARE @TcpDynamicPorts nvarchar(100)
     DECLARE @InstanceVersion  varchar(100)
 
-    SET @InstanceVersion = CASE CONVERT(char(4), SERVERPROPERTY('ProductVersion'))
-                            WHEN '9.00' THEN '9'
-                            WHEN '10.0' THEN '10'
-                            WHEN '10.5' THEN '10_50'
-                            WHEN '11.0' THEN '11'
-                            WHEN '12.0' THEN '12'
-                        END
-    SET @Instance ='MSSQL' + @InstanceVersion + '.' +  CONVERT(VARCHAR(50), ISNULL(SERVERPROPERTY('InstanceName'), 'MSSQLSERVER')) 
+    SET @InstanceVersion = 
+        CASE CONVERT(char(4), SERVERPROPERTY('ProductVersion'))
+            WHEN '9.00' THEN '9'
+            WHEN '10.0' THEN '10'
+            WHEN '10.5' THEN '10_50'
+            WHEN '11.0' THEN '11'
+            WHEN '12.0' THEN '12'
+        END
+
+    SET @Instance = 'MSSQL' + @InstanceVersion + '.' +  CONVERT(VARCHAR(50), ISNULL(SERVERPROPERTY('InstanceName'), 'MSSQLSERVER')) 
 
     --SET @Instance ='MSSQL10_50.SQLEXPRESS'
     SET @HkeyLocal=N'HKEY_LOCAL_MACHINE'
@@ -842,7 +838,8 @@ BEGIN
     EXEC xp_instance_regread @HkeyLocal    , @MSSqlServerRegPath    , N'TcpDynamicPorts'    , @TcpDynamicPorts OUTPUT
 
     SELECT @HkeyLocal + '\' +  @MSSqlServerRegPath registry_key, 'TcpPort' value_name, isnull(@TcpPort, '') as value_data
-    union all SELECT @HkeyLocal + '\' +  @MSSqlServerRegPath registry_key, 'TcpDynamicPorts' , isnull(@TcpDynamicPorts, '') as value_data 
+    union all
+    SELECT @HkeyLocal + '\' +  @MSSqlServerRegPath registry_key, 'TcpDynamicPorts' , isnull(@TcpDynamicPorts, '') as value_data 
 END
 GO
 
