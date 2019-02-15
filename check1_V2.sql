@@ -2,6 +2,7 @@ SET NOCOUNT ON;
 
 /* SQL Server Configuration Report  
 2018-01-18     Ver1 초기완성 버전
+2018-02-18     Ver2 개선 버전
 -------------------------------------------------------------------------*/
 
 DECLARE 
@@ -29,6 +30,10 @@ DECLARE
     , @TotalMEMORYinBytes NVARCHAR(10) -- Total memory
 --    , @ErrorLogLocation VARCHAR(500) 	-- location of error logs
     , @TraceFileLocation VARCHAR(100) 	-- location of trace files
+    , @AuditLevel int
+    , @AuditLvltxt VARCHAR(50)
+    , @ImagePath varchar(500)
+    , @SQLServerEnginePath varchar(500)
 
 SET @CurrentDate = CONVERT(varchar(100), GETDATE(), 120)
 --SET @ServerName = (SELECT @@SERVERNAME)
@@ -122,9 +127,6 @@ IF (SELECT CONVERT(int, SERVERPROPERTY('ISIntegratedSecurityOnly'))) = 1
 ELSE
     SET @ISIntegratedSecurityOnly = 'SQL Server Authentication Security Mode'
 ------------------------------------------------------------------------
-DECLARE @AuditLevel int,
-    @AuditLvltxt VARCHAR(50)
-    
 EXEC MASTER.dbo.xp_instance_regread N'HKEY_LOCAL_MACHINE', N'Software\Microsoft\MSSQLServer\MSSQLServer', N'AuditLevel', @AuditLevel OUTPUT
 
 SELECT @AuditLvltxt =
@@ -136,9 +138,6 @@ SELECT @AuditLvltxt =
     	ELSE 'Unknown'
     END
 ------------------------------------------------------------------------
-DECLARE @ImagePath varchar(500)
-    , @SQLServerEnginePath varchar(500)
-
 EXEC MASTER.dbo.xp_instance_regread N'HKEY_LOCAL_MACHINE', N'SYSTEM\CurrentControlSet\Services\MSSQLSERVER', N'ImagePath', @ImagePath OUTPUT
 
 SET @SQLServerEnginePath = REPLACE(SUBSTRING(@ImagePath, 2, CHARINDEX('"',  @ImagePath, 2) - 2), 'sqlservr.exe', '')
@@ -562,7 +561,7 @@ FROM #Database_Mail_Details2
 PRINT CHAR(13) + CHAR(10) + '--##  Database Mirroring Status'
 
 SELECT CONVERT(nvarchar(35),DBName)   AS 'Database Name'
-    ,MirroringState                 AS 'Mirroring State'
+    , MirroringState                 AS 'Mirroring State'
 FROM 
 (
     SELECT DB.name DBName,
