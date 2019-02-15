@@ -143,16 +143,9 @@ ELSE
 BEGIN
     SET @NodeName1 = (SELECT top 1 NodeName from #nodes order by NodeName)
     SET @NodeName2 = (SELECT TOP 1 NodeName from #nodes where NodeName > @NodeName1)
-    -- Add code here if more that 2 node cluster
 END
 
 ------------------------------------------------------------------------
--- SELECT net_transport, auth_scheme INTO #KERBINFO FROM sys.dm_exec_connections WHERE session_id = @@spid
--- IF @@rowcount = 0 
---     SET @KERB = 'Kerberos not used in TCP network transport'
--- ELSE
---     SET @KERB = 'TCP is using Kerberos'
-
 IF (SELECT count(*) FROM sys.dm_exec_connections WHERE session_id = @@spid) > 0
     SET @KERB = 'Kerberos not used in TCP network transport'
 ELSE
@@ -190,13 +183,7 @@ IF (SELECT CONVERT(int, SERVERPROPERTY('ISSingleUser'))) = 1
 ELSE
     SET @ISSingleUser = 'Multi User'
 ------------------------------------------------------------------------
---SET @COLLATION = (SELECT CONVERT(varchar(30), SERVERPROPERTY('COLLATION')))
-------------------------------------------------------------------------
 SET @ErrorLogLocation = (SELECT REPLACE(CAST(SERVERPROPERTY('ErrorLogFileName') AS VARCHAR(500)), 'ERRORLOG',''))
-------------------------------------------------------------------------
--- SET @TraceFileLocation = 
-------------------------------------------------------------------------
---SET @LinkServers = (SELECT COUNT(*) FROM sys.servers WHERE is_linked ='1')
 ------------------------------------------------------------------------
 SELECT KeyName, KeyVal
 FROM
