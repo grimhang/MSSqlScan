@@ -262,7 +262,8 @@ END
 /* ---------------------------------- SQL Server Service Section ----------------------------------------------*/
 SET @REGKEY = 'System\CurrentControlSet\Services\' + @SQLSrv
 
-INSERT #RegResult ( ResultValue ) EXEC master.sys.xp_regread @rootkey='HKEY_LOCAL_MACHINE', @key=@REGKEY
+INSERT #RegResult ( ResultValue )
+EXEC master.sys.xp_regread @rootkey='HKEY_LOCAL_MACHINE', @key=@REGKEY
 
 IF (SELECT ResultValue FROM #RegResult) = 1 
 BEGIN
