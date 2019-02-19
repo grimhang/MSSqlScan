@@ -350,18 +350,22 @@ INSERT #RegResult ( ResultValue ) EXEC master.sys.xp_regread @rootkey='HKEY_LOCA
 IF (SELECT ResultValue FROM #RegResult) = 1 
 BEGIN
     INSERT #ServicesServiceStatus (ServiceStatus)        
-    EXEC master.dbo.xp_servicecontrol N'QUERYSTATE',N'MsDtsServer'
+
+    EXEC master.dbo.xp_servicecontrol N'QUERYSTATE', N'MsDtsServer'
     UPDATE #ServicesServiceStatus set ServiceName = 'Integration Service - Instance Independent' where RowID = @@identity
     UPDATE #ServicesServiceStatus set ServerName = @TrueSrvName where RowID = @@identity
     UPDATE #ServicesServiceStatus set PhysicalSrverName = @PhysicalSrvName where RowID = @@identity
+    
     TRUNCATE TABLE #RegResult
 END
 ELSE 
 BEGIN
     INSERT INTO #ServicesServiceStatus (ServiceStatus) VALUES ('NOT INSTALLED')
+
     UPDATE #ServicesServiceStatus set ServiceName = 'Intergration Service - Instance Independent' where RowID = @@identity
     UPDATE #ServicesServiceStatus set ServerName = @TrueSrvName where RowID = @@identity
     UPDATE #ServicesServiceStatus set PhysicalSrverName = @PhysicalSrvName where RowID = @@identity
+
     TRUNCATE TABLE #RegResult
 END
 
