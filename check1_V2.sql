@@ -489,10 +489,10 @@ SELECT
     , Max(D.user_access_desc)		AS 'User Access'
     , Max(D.state_desc)				AS 'Status'
     , Max(D.recovery_model_desc)	AS 'Recovery Model'    
-	, SUM(CASE WHEN F.file_id <> 2 THEN CAST(F.size AS BIGINT) ELSE 0 END) * 8 / 1024		AS TotalDataDiskSpace_MB
-	, SUM(CASE WHEN F.file_id = 2 THEN CAST(F.size AS BIGINT) ELSE 0 END) * 8 / 1024		AS TotalLogDiskSpace_MB
-	, ISNULL(STR(ABS(DATEDIFF(day, GetDate(), MAX(B.Backup_finish_date)))), 'NEVER')		AS DaysSinceLastBackup
-    , ISNULL(Convert(char(10), MAX(B.backup_finish_date), 101), 'NEVER')					AS LastBackupDate
+	, SUM(CASE WHEN F.file_id <> 2 THEN CAST(F.size AS BIGINT) ELSE 0 END) * 8 / 1024 / 1024	AS TotalDataDiskSpace_MB
+	, SUM(CASE WHEN F.file_id = 2 THEN CAST(F.size AS BIGINT) ELSE 0 END) * 8 / 1024 / 1024 	AS TotalLogDiskSpace_MB
+	, ISNULL(STR(ABS(DATEDIFF(day, GetDate(), MAX(B.Backup_finish_date)))), 'NEVER')		    AS DaysSinceLastBackup
+    , ISNULL(Convert(char(10), MAX(B.backup_finish_date), 101), 'NEVER')					    AS LastBackupDate
 FROM SYS.DATABASES D
     JOIN sys.master_files F					ON D.database_id= F.database_id
 	LEFT JOIN msdb.dbo.backupset B			ON B.database_name = D.name AND B.type = 'D' 
