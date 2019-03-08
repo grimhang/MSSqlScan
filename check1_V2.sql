@@ -243,7 +243,8 @@ IF @ChkSrvName IS NULL
 BEGIN 
     SET @TrueSrvName = 'MSQLSERVER'
     SELECT @OLAP = 'MSSQLServerOLAPService'     
-    SELECT @FTS = 'MSFTESQL' 
+    --SELECT @FTS = 'MSFTESQL'  
+    SELECT @FTS = 'MSSQLFDLauncher'
     SELECT @RS = 'ReportServer' 
     SELECT @SQLAgent = 'SQLSERVERAGENT'
     SELECT @SQLSrv = 'MSSQLSERVER'
@@ -253,7 +254,8 @@ BEGIN
     SET @TrueSrvName =  CAST(SERVERPROPERTY('INSTANCENAME') AS VARCHAR(128)) 
     SET @SQLSrv = '$' + @ChkSrvName
     SELECT @OLAP = 'MSOLAP' + @SQLSrv    /*Setting up proper service name*/
-    SELECT @FTS = 'MSFTESQL' + @SQLSrv 
+    --SELECT @FTS = 'MSFTESQL' + @SQLSrv 
+    SELECT @FTS = 'MSSQLFDLauncher' + @SQLSrv 
     SELECT @RS = 'ReportServer' + @SQLSrv
     SELECT @SQLAgent = 'SQLAgent' + @SQLSrv
     SELECT @SQLSrv = 'MSSQL' + @SQLSrv
