@@ -343,15 +343,33 @@ BEGIN
 END
 
 /* ---------------------------------- Integration Service Section ----------------------------------------------*/
-SET @REGKEY = 'System\CurrentControlSet\Services\MsDtsServer'
+DECLARE @ProductVersionTemp NVARCHAR(50)
+    , @integrationServiceIns NVARCHAR(100)
+
+SET @ProductVersionTemp     = CONVERT(varchar(30), SERVERPROPERTY('ProductVersion'))
+set @integrationServiceIns = 'MsDtsServer' + 
+                                            CASE
+                                                WHEN @ProductVersionTemp LIKE '6.5%'   THEN ''
+                                                WHEN @ProductVersionTemp LIKE '7.0%'   THEN ''
+                                                WHEN @ProductVersionTemp LIKE '8.0%'   THEN ''
+                                                WHEN @ProductVersionTemp LIKE '9.0%'   THEN ''      -- 2005
+                                                WHEN @ProductVersionTemp LIKE '10.0%'  THEN '100'   -- 2008
+                                                WHEN @ProductVersionTemp LIKE '10.50%' THEN '105'   -- 2008 R2
+                                                WHEN @ProductVersionTemp LIKE '11.0%'  THEN '110'   -- 2012
+                                                WHEN @ProductVersionTemp LIKE '12.0%'  THEN '120'   -- 2014
+                                                WHEN @ProductVersionTemp LIKE '13.0%'  THEN '130'   -- 2016
+                                                WHEN @ProductVersionTemp LIKE '14.0%'  THEN '140'   -- 2017
+                                                ELSE ''
+                                            END
+
+SET @REGKEY = 'System\CurrentControlSet\Services\' + @integrationServiceIns
 
 INSERT #RegResult ( ResultValue ) EXEC master.sys.xp_regread @rootkey='HKEY_LOCAL_MACHINE', @key=@REGKEY
 
 IF (SELECT ResultValue FROM #RegResult) = 1 
 BEGIN
-    INSERT #ServicesServiceStatus (ServiceStatus)        
-
-    EXEC master.dbo.xp_servicecontrol N'QUERYSTATE', N'MsDtsServer'
+    INSERT #ServicesServiceStatus (ServiceStatus)
+    EXEC master.dbo.xp_servicecontrol N'QUERYSTATE', @integrationServiceIns
     UPDATE #ServicesServiceStatus set ServiceName = 'Integration Service - Instance Independent' where RowID = @@identity
     UPDATE #ServicesServiceStatus set ServerName = @TrueSrvName where RowID = @@identity
     UPDATE #ServicesServiceStatus set PhysicalSrverName = @PhysicalSrvName where RowID = @@identity
