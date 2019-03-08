@@ -354,7 +354,7 @@ set @integrationServiceIns = 'MsDtsServer' +
                                                 WHEN @ProductVersionTemp LIKE '8.0%'   THEN ''
                                                 WHEN @ProductVersionTemp LIKE '9.0%'   THEN ''      -- 2005
                                                 WHEN @ProductVersionTemp LIKE '10.0%'  THEN '100'   -- 2008
-                                                WHEN @ProductVersionTemp LIKE '10.50%' THEN '105'   -- 2008 R2
+                                                --WHEN @ProductVersionTemp LIKE '10.50%' THEN '105'   -- 2008 R2
                                                 WHEN @ProductVersionTemp LIKE '11.0%'  THEN '110'   -- 2012
                                                 WHEN @ProductVersionTemp LIKE '12.0%'  THEN '120'   -- 2014
                                                 WHEN @ProductVersionTemp LIKE '13.0%'  THEN '130'   -- 2016
