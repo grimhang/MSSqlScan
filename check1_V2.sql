@@ -524,7 +524,7 @@ FROM SYS.DATABASES D
 			AND type = 'D'	-- 데이터백업만
 		GROUP BY database_name
 	) B			ON B.database_name = D.name 
-WHERE D.name NOT IN ('master', 'model', 'tempdb')
+--WHERE D.name NOT IN ('master', 'model', 'tempdb')
 	--AND D.DATABASE_ID = 9 AND type_desc ='ROWS'
 GROUP BY D.database_id, D.[name]
 ORDER BY D.[name]
@@ -537,7 +537,7 @@ SELECT
 	, S.*
 FROM SYS.DATABASES D
     INNER JOIN sys.master_files S       ON D.database_id= S.database_id
-WHERE D.name NOT IN ('model')
+--WHERE D.name NOT IN ('model')
 ORDER BY D.[name], s.file_id
 GO
 ------------------------------------------------------------------------
