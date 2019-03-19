@@ -554,6 +554,7 @@ INSERT @DB_USers EXEC sp_MSforeachdb'
     LEFT OUTER JOIN sys.database_role_members mem ON prin.principal_id=mem.member_principal_id
     WHERE prin.sid IS NOT NULL and prin.sid NOT IN (0x00) and
     prin.is_fixed_role <> 1 AND prin.name NOT LIKE ''##%'''
+
 SELECT dbname,username ,logintype     
     , create_date ,modify_date , STUFF((SELECT ',' + CONVERT(VARCHAR(500),associatedrole)
 FROM @DB_USers user2
@@ -718,14 +719,14 @@ SELECT
         WHEN 2 THEN 'On Failure'
         WHEN 3 THEN 'On Completion'
       END AS [JobDeletionCriterion]
-     , js.step_id
-     , js.step_name
-     , js.subsystem
-     --, js.command   // 줄바꿈 포맷이 깨져서 주석처리
-     , js.on_success_action
-     , js.on_fail_step_id
-     , js.database_name
-     , js.last_run_date
+    , js.step_id
+    , js.step_name
+    , js.subsystem
+    --, js.command   // 줄바꿈 포맷이 깨져서 주석처리
+    , js.on_success_action
+    , js.on_fail_step_id
+    , js.database_name
+    , js.last_run_date
 FROM 
     [msdb].[dbo].[sysjobs] AS j    
     LEFT JOIN [msdb].[sys].[servers] AS [svr]                ON j.[originating_server_id] = [svr].[server_id]
