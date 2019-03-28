@@ -280,11 +280,11 @@ BEGIN
     -- UPDATE #ServicesServiceStatus set ServerName = @TrueSrvName where RowID = @@identity
     -- UPDATE #ServicesServiceStatus set PhysicalSrverName = @PhysicalSrvName where RowID = @@identity
 
-    UPDATE #ServicesServiceStatus
-    set ServiceName = 'MS SQL Server Service', ServerName = @TrueSrvName, PhysicalSrverName = @PhysicalSrvName
-    where RowID = @@identity    
+    -- UPDATE #ServicesServiceStatus
+    -- set ServiceName = 'MS SQL Server Service', ServerName = @TrueSrvName, PhysicalSrverName = @PhysicalSrvName
+    -- where RowID = @@identity    
 
-    TRUNCATE TABLE #RegResult
+    -- TRUNCATE TABLE #RegResult
 END
 ELSE 
 BEGIN
@@ -294,13 +294,18 @@ BEGIN
     -- UPDATE #ServicesServiceStatus set ServerName = @TrueSrvName where RowID = @@identity
     -- UPDATE #ServicesServiceStatus set PhysicalSrverName = @PhysicalSrvName where RowID = @@identity
 
-    UPDATE #ServicesServiceStatus
-    set ServiceName = 'MS SQL Server Service', ServerName = @TrueSrvName, PhysicalSrverName = @PhysicalSrvName
-    where RowID = @@identity
+    -- UPDATE #ServicesServiceStatus
+    -- set ServiceName = 'MS SQL Server Service', ServerName = @TrueSrvName, PhysicalSrverName = @PhysicalSrvName
+    -- where RowID = @@identity
 
-    TRUNCATE TABLE #RegResult
+    -- TRUNCATE TABLE #RegResult
 END
 
+UPDATE #ServicesServiceStatus
+set ServiceName = 'MS SQL Server Service', ServerName = @TrueSrvName, PhysicalSrverName = @PhysicalSrvName
+where RowID = @@identity    
+
+TRUNCATE TABLE #RegResult
 /* ---------------------------------- SQL Server Agent Service Section -----------------------------------------*/
 SET @REGKEY = 'System\CurrentControlSet\Services\' + @SQLAgent
 
