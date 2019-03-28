@@ -1,9 +1,13 @@
-SET NOCOUNT ON;
+
 
 /* SQL Server Configuration Report  
 2018-01-18     Ver1 초기완성 버전
 2018-02-18     Ver2 개선 버전
 -------------------------------------------------------------------------*/
+
+SET NOCOUNT ON;
+use master
+go
 
 DECLARE
       @CurrentDate NVARCHAR(50) 	-- Current data/time
@@ -272,19 +276,27 @@ BEGIN
     INSERT #ServicesServiceStatus (ServiceStatus)        
     EXEC xp_servicecontrol N'QUERYSTATE',@SQLSrv
 
-    UPDATE #ServicesServiceStatus set ServiceName = 'MS SQL Server Service' where RowID = @@identity
-    UPDATE #ServicesServiceStatus set ServerName = @TrueSrvName where RowID = @@identity
-    UPDATE #ServicesServiceStatus set PhysicalSrverName = @PhysicalSrvName where RowID = @@identity
-    
+    -- UPDATE #ServicesServiceStatus set ServiceName = 'MS SQL Server Service' where RowID = @@identity
+    -- UPDATE #ServicesServiceStatus set ServerName = @TrueSrvName where RowID = @@identity
+    -- UPDATE #ServicesServiceStatus set PhysicalSrverName = @PhysicalSrvName where RowID = @@identity
+
+    UPDATE #ServicesServiceStatus
+    set ServiceName = 'MS SQL Server Service', ServerName = @TrueSrvName, PhysicalSrverName = @PhysicalSrvName
+    where RowID = @@identity    
+
     TRUNCATE TABLE #RegResult
 END
 ELSE 
 BEGIN
     INSERT INTO #ServicesServiceStatus (ServiceStatus) VALUES ('NOT INSTALLED')
 
-    UPDATE #ServicesServiceStatus set ServiceName = 'MS SQL Server Service' where RowID = @@identity
-    UPDATE #ServicesServiceStatus set ServerName = @TrueSrvName where RowID = @@identity
-    UPDATE #ServicesServiceStatus set PhysicalSrverName = @PhysicalSrvName where RowID = @@identity
+    -- UPDATE #ServicesServiceStatus set ServiceName = 'MS SQL Server Service' where RowID = @@identity
+    -- UPDATE #ServicesServiceStatus set ServerName = @TrueSrvName where RowID = @@identity
+    -- UPDATE #ServicesServiceStatus set PhysicalSrverName = @PhysicalSrvName where RowID = @@identity
+
+    UPDATE #ServicesServiceStatus
+    set ServiceName = 'MS SQL Server Service', ServerName = @TrueSrvName, PhysicalSrverName = @PhysicalSrvName
+    where RowID = @@identity
 
     TRUNCATE TABLE #RegResult
 END
