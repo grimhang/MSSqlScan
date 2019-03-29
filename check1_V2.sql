@@ -2,8 +2,8 @@
 2018-01-18     Ver1 초기완성 버전
 2018-02-18     Ver2 개선 버전
 -------------------------------------------------------------------------*/
-
 SET NOCOUNT ON;
+
 use master
 go
 
@@ -247,7 +247,7 @@ BEGIN
     SET @SQLSrv = 'MSSQL' + @SQLSrv
 END 
 ;
-    ----- 02.1 SQL Server Service Section ---------
+    ----- 02.1 SQL Server Service Section -----------------
     SET @REGKEY = 'System\CurrentControlSet\Services\' + @SQLSrv
 
     INSERT #RegResult ( ResultValue )
@@ -264,7 +264,7 @@ END
 
     TRUNCATE TABLE #RegResult
     
-    ----- 02.2 SQL Server Agent Service Section ----
+    ----- 02.2 SQL Server Agent Service Section -----------
     SET @REGKEY = 'System\CurrentControlSet\Services\' + @SQLAgent
 
     INSERT #RegResult ( ResultValue )
@@ -281,7 +281,7 @@ END
 
     TRUNCATE TABLE #RegResult
 
-    ----- 02.3 SQL Browser Service Section ---------
+    ----- 02.3 SQL Browser Service Section ----------------
     SET @REGKEY = 'System\CurrentControlSet\Services\SQLBrowser'
 
     INSERT #RegResult ( ResultValue ) EXEC master.sys.xp_regread @rootkey='HKEY_LOCAL_MACHINE', @key=@REGKEY
@@ -297,7 +297,7 @@ END
 
     TRUNCATE TABLE #RegResult
 
-    ----- 02.4 Integration Service Section ----------
+    ----- 02.4 Integration Service Section ----------------
     DECLARE @ProductVersionTemp NVARCHAR(50)
         , @integrationServiceIns NVARCHAR(100)
 
@@ -332,7 +332,7 @@ END
 
     TRUNCATE TABLE #RegResult
 
-    ----- 02.5 Reporting Service Section ------------
+    ----- 02.5 Reporting Service Section ------------------
     SET @REGKEY = 'System\CurrentControlSet\Services\' + @RS
 
     INSERT #RegResult ( ResultValue ) EXEC master.sys.xp_regread @rootkey='HKEY_LOCAL_MACHINE', @key=@REGKEY
@@ -348,7 +348,7 @@ END
 
     TRUNCATE TABLE #RegResult
 
-    ----- 02.6 Analysis Service Section -------------
+    ----- 02.6 Analysis Service Section -------------------
     IF @ChkSrvName IS NULL                                
         BEGIN 
         SET @OLAP = 'MSSQLServerOLAPService'
@@ -372,7 +372,7 @@ END
 
     TRUNCATE TABLE #RegResult
 
-    ----- 02.7 Full Text Search Service Section ------
+    ----- 02.7 Full Text Search Service Section -----------
     SET @REGKEY = 'System\CurrentControlSet\Services\' + @FTS
 
     INSERT #RegResult ( ResultValue ) EXEC master.sys.xp_regread @rootkey='HKEY_LOCAL_MACHINE', @key=@REGKEY
@@ -388,11 +388,11 @@ END
 
     TRUNCATE TABLE #RegResult
 
-    ----- 02.8 ServerName Update --------------------
+    ----- 02.8 ServerName Update --------------------------
     UPDATE #ServicesServiceStatus
     set ServerName = @TrueSrvName, PhysicalServerName = @PhysicalSrvName
     
-    ----- 02.9 Total Service Section ----------------    
+    ----- 02.9 Total Service Section ----------------------
     PRINT CHAR(13) + CHAR(10) + '--##  SQL Services Status' 
 
     SELECT ServerName as 'SQL Server\Instance Name'
@@ -423,7 +423,7 @@ GO
 
 DROP TABLE #HD_space;
 --=================== 04. Database Information =================
-    ----- 03.1 Database Section ---------------------
+    ----- 04.1 Database Section ---------------------
     PRINT CHAR(13) + CHAR(10) + '--##  Database'
 
     SELECT 
@@ -453,7 +453,7 @@ DROP TABLE #HD_space;
     ORDER BY D.[name]
     GO
 
-    ----- 03.2 Database File Section ---------------------
+    ----- 04.2 Database File Section ---------------------
     PRINT CHAR(13) + CHAR(10) + '--##  Database File'
 
     SELECT 
@@ -465,7 +465,7 @@ DROP TABLE #HD_space;
     ORDER BY D.[name], s.file_id
     GO
 
-    ----- 03.3 Database users Section ---------------------
+    ----- 04.3 Database users Section ---------------------
     PRINT CHAR(13) + CHAR(10) + '--##  Database users Permissions'
 
     DECLARE @DB_USers TABLE(DBName sysname, UserName sysname, LoginType sysname, AssociatedRole varchar(max),create_date datetime,modify_date datetime)
@@ -476,9 +476,9 @@ DROP TABLE #HD_space;
             prin.type_desc AS LoginType,
             isnull(USER_NAME(mem.role_principal_id),'''') AS AssociatedRole ,create_date,modify_date
         FROM sys.database_principals prin
-        LEFT OUTER JOIN sys.database_role_members mem ON prin.principal_id=mem.member_principal_id
-        WHERE prin.sid IS NOT NULL and prin.sid NOT IN (0x00) and
-        prin.is_fixed_role <> 1 AND prin.name NOT LIKE ''##%'''
+            LEFT JOIN sys.database_role_members mem ON prin.principal_id=mem.member_principal_id
+        WHERE prin.sid IS NOT NULL and prin.sid NOT IN (0x00)
+            AND prin.is_fixed_role <> 1 AND prin.name NOT LIKE ''##%'''
 
     SELECT dbname,username ,logintype     
         , create_date ,modify_date , STUFF((SELECT ',' + CONVERT(VARCHAR(500),associatedrole)
@@ -492,7 +492,7 @@ DROP TABLE #HD_space;
     ORDER BY DBName,username
     GO
 
-    ----- 03.4 Database Mail Service Section --------------
+    ----- 04.4 Database Mail Service Section --------------
     PRINT CHAR(13) + CHAR(10) + '--##  Database Mail Service Status'
 
     CREATE TABLE #Database_Mail_Details2
@@ -520,7 +520,7 @@ DROP TABLE #HD_space;
 
     DROP TABLE #Database_Mail_Details2;
 
-    ----- 03.5 Database Mirroring Service Section ---------
+    ----- 04.5 Database Mirroring Service Section ---------
     PRINT CHAR(13) + CHAR(10) + '--##  Database Mirroring Status'
 
     SELECT CONVERT(nvarchar(35),DBName)   AS 'Database Name'
@@ -537,7 +537,7 @@ DROP TABLE #HD_space;
     ) T
     ORDER BY DBName;
 
-    ----- 03.6 Database Mirroring Database Section --------
+    ----- 04.6 Database Mirroring Database Section --------
     PRINT CHAR(13) + CHAR(10) + '--##  Database Mirroring Database'
 
     SELECT db_name(database_id) as 'Mirror DB_Name', 
@@ -575,7 +575,7 @@ DROP TABLE #HD_space;
     FROM sys.Database_mirroring
     WHERE mirroring_role is not null;
 
-    ----- 03.7 Database Log Shipping Section --------------
+    ----- 04.7 Database Log Shipping Section --------------
     PRINT CHAR(13) + CHAR(10) + '--##  Database Log Shipping Status'
 
     IF (CONVERT(VARchar(30), SERVERPROPERTY('EDITION')) LIKE 'Express%')
