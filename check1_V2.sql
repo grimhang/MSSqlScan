@@ -246,23 +246,23 @@ SET @ChkInstanceName = @@ServerName
 IF @ChkSrvName IS NULL                            
 BEGIN 
     SET @TrueSrvName = 'MSQLSERVER'
-    SELECT @OLAP = 'MSSQLServerOLAPService'     
+    SET @OLAP = 'MSSQLServerOLAPService'     
     --SELECT @FTS = 'MSFTESQL'  
-    SELECT @FTS = 'MSSQLFDLauncher'
-    SELECT @RS = 'ReportServer' 
-    SELECT @SQLAgent = 'SQLSERVERAGENT'
-    SELECT @SQLSrv = 'MSSQLSERVER'
+    SET @FTS = 'MSSQLFDLauncher'
+    SET @RS = 'ReportServer' 
+    SET @SQLAgent = 'SQLSERVERAGENT'
+    SET @SQLSrv = 'MSSQLSERVER'
 END 
 ELSE
 BEGIN
     SET @TrueSrvName =  CAST(SERVERPROPERTY('INSTANCENAME') AS VARCHAR(128)) 
     SET @SQLSrv = '$' + @ChkSrvName
-    SELECT @OLAP = 'MSOLAP' + @SQLSrv    /*Setting up proper service name*/
+    SET @OLAP = 'MSOLAP' + @SQLSrv    /*Setting up proper service name*/
     --SELECT @FTS = 'MSFTESQL' + @SQLSrv 
-    SELECT @FTS = 'MSSQLFDLauncher' + @SQLSrv 
-    SELECT @RS = 'ReportServer' + @SQLSrv
-    SELECT @SQLAgent = 'SQLAgent' + @SQLSrv
-    SELECT @SQLSrv = 'MSSQL' + @SQLSrv
+    SET @FTS = 'MSSQLFDLauncher' + @SQLSrv 
+    SET @RS = 'ReportServer' + @SQLSrv
+    SET @SQLAgent = 'SQLAgent' + @SQLSrv
+    SET @SQLSrv = 'MSSQL' + @SQLSrv
 END 
 ;
 /* ---------------------------------- SQL Server Service Section ----------------------------------------------*/
@@ -409,6 +409,9 @@ set ServiceName = 'Full Text Search Service', ServerName = @TrueSrvName, Physica
 where RowID = @@identity
 
 TRUNCATE TABLE #RegResult
+/* ---------------------------------- ServerName Update -----------------------------------------*/
+UPDATE #ServicesServiceStatus
+set ServerName = @TrueSrvName, PhysicalServerName = @PhysicalSrvName
 /* ---------------------------------- Total Service Section -----------------------------------------*/
 SELECT ServerName as 'SQL Server\Instance Name'
     , ServiceName as 'Service Name'
@@ -416,6 +419,7 @@ SELECT ServerName as 'SQL Server\Instance Name'
     , StatusDateTime as 'Status Date\Time'
 FROM  #ServicesServiceStatus;        
 
+--select * from #ServicesServiceStatus
 ------------------------------------------------------------------------
 PRINT CHAR(13) + CHAR(10) + '--##  OS Hard Drive Space Available'
 
