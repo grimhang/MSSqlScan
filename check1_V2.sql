@@ -1,5 +1,3 @@
-
-
 /* SQL Server Configuration Report  
 2018-01-18     Ver1 초기완성 버전
 2018-02-18     Ver2 개선 버전
@@ -249,161 +247,171 @@ BEGIN
     SET @SQLSrv = 'MSSQL' + @SQLSrv
 END 
 ;
-/* ---------------------------------- SQL Server Service Section ----------------------------------------------*/
-SET @REGKEY = 'System\CurrentControlSet\Services\' + @SQLSrv
+    ----- 02.1 SQL Server Service Section ---------
+    SET @REGKEY = 'System\CurrentControlSet\Services\' + @SQLSrv
 
-INSERT #RegResult ( ResultValue )
-EXEC master.sys.xp_regread @rootkey='HKEY_LOCAL_MACHINE', @key=@REGKEY
+    INSERT #RegResult ( ResultValue )
+    EXEC master.sys.xp_regread @rootkey='HKEY_LOCAL_MACHINE', @key=@REGKEY
 
-IF (SELECT ResultValue FROM #RegResult) = 1 
-    INSERT #ServicesServiceStatus (ServiceStatus) EXEC xp_servicecontrol N'QUERYSTATE',@SQLSrv
-ELSE 
-    INSERT INTO #ServicesServiceStatus (ServiceStatus) VALUES ('NOT INSTALLED')
+    IF (SELECT ResultValue FROM #RegResult) = 1 
+        INSERT #ServicesServiceStatus (ServiceStatus) EXEC xp_servicecontrol N'QUERYSTATE',@SQLSrv
+    ELSE 
+        INSERT INTO #ServicesServiceStatus (ServiceStatus) VALUES ('NOT INSTALLED')
 
-UPDATE #ServicesServiceStatus
-set ServiceName = 'MS SQL Server Service'
-where RowID = @@identity    
+    UPDATE #ServicesServiceStatus
+    set ServiceName = 'MS SQL Server Service'
+    where RowID = @@identity    
 
-TRUNCATE TABLE #RegResult
-/* ---------------------------------- SQL Server Agent Service Section -----------------------------------------*/
-SET @REGKEY = 'System\CurrentControlSet\Services\' + @SQLAgent
+    TRUNCATE TABLE #RegResult
+    
+    ----- 02.2 SQL Server Agent Service Section ----
+    SET @REGKEY = 'System\CurrentControlSet\Services\' + @SQLAgent
 
-INSERT #RegResult ( ResultValue )
-EXEC master.sys.xp_regread @rootkey='HKEY_LOCAL_MACHINE', @key=@REGKEY
+    INSERT #RegResult ( ResultValue )
+    EXEC master.sys.xp_regread @rootkey='HKEY_LOCAL_MACHINE', @key=@REGKEY
 
-IF (SELECT ResultValue FROM #RegResult) = 1 
-    INSERT #ServicesServiceStatus (ServiceStatus) EXEC xp_servicecontrol N'QUERYSTATE',@SQLAgent
-ELSE 
-    INSERT INTO #ServicesServiceStatus (ServiceStatus) VALUES ('NOT INSTALLED')
+    IF (SELECT ResultValue FROM #RegResult) = 1
+        INSERT #ServicesServiceStatus (ServiceStatus) EXEC xp_servicecontrol N'QUERYSTATE',@SQLAgent
+    ELSE 
+        INSERT INTO #ServicesServiceStatus (ServiceStatus) VALUES ('NOT INSTALLED')
 
-UPDATE #ServicesServiceStatus
-set ServiceName = 'SQL Server Agent Service'
-where RowID = @@identity
+    UPDATE #ServicesServiceStatus
+    set ServiceName = 'SQL Server Agent Service'
+    where RowID = @@identity
 
-TRUNCATE TABLE #RegResult
+    TRUNCATE TABLE #RegResult
 
-/* ---------------------------------- SQL Browser Service Section ----------------------------------------------*/
-SET @REGKEY = 'System\CurrentControlSet\Services\SQLBrowser'
+    ----- 02.3 SQL Browser Service Section ---------
+    SET @REGKEY = 'System\CurrentControlSet\Services\SQLBrowser'
 
-INSERT #RegResult ( ResultValue ) EXEC master.sys.xp_regread @rootkey='HKEY_LOCAL_MACHINE', @key=@REGKEY
+    INSERT #RegResult ( ResultValue ) EXEC master.sys.xp_regread @rootkey='HKEY_LOCAL_MACHINE', @key=@REGKEY
 
-IF (SELECT ResultValue FROM #RegResult) = 1 
-    INSERT #ServicesServiceStatus (ServiceStatus) EXEC master.dbo.xp_servicecontrol N'QUERYSTATE',N'sqlbrowser'
-ELSE 
-    INSERT INTO #ServicesServiceStatus (ServiceStatus) VALUES ('NOT INSTALLED')
+    IF (SELECT ResultValue FROM #RegResult) = 1 
+        INSERT #ServicesServiceStatus (ServiceStatus) EXEC master.dbo.xp_servicecontrol N'QUERYSTATE',N'sqlbrowser'
+    ELSE 
+        INSERT INTO #ServicesServiceStatus (ServiceStatus) VALUES ('NOT INSTALLED')
 
-UPDATE #ServicesServiceStatus
-set ServiceName = 'SQL Browser Service - Instance Independent'
-where RowID = @@identity
+    UPDATE #ServicesServiceStatus
+    set ServiceName = 'SQL Browser Service - Instance Independent'
+    where RowID = @@identity
 
-TRUNCATE TABLE #RegResult
-/* ---------------------------------- Integration Service Section ----------------------------------------------*/
-DECLARE @ProductVersionTemp NVARCHAR(50)
-    , @integrationServiceIns NVARCHAR(100)
+    TRUNCATE TABLE #RegResult
 
-SET @ProductVersionTemp     = CONVERT(varchar(30), SERVERPROPERTY('ProductVersion'))
-set @integrationServiceIns = 'MsDtsServer' + 
-                                            CASE
-                                                WHEN @ProductVersionTemp LIKE '6.5%'   THEN ''
-                                                WHEN @ProductVersionTemp LIKE '7.0%'   THEN ''
-                                                WHEN @ProductVersionTemp LIKE '8.0%'   THEN ''
-                                                WHEN @ProductVersionTemp LIKE '9.0%'   THEN ''      -- 2005
-                                                WHEN @ProductVersionTemp LIKE '10.%'  THEN '100'   -- 2008
-                                                --WHEN @ProductVersionTemp LIKE '10.50%' THEN '105'   -- 2008 R2
-                                                WHEN @ProductVersionTemp LIKE '11.0%'  THEN '110'   -- 2012
-                                                WHEN @ProductVersionTemp LIKE '12.0%'  THEN '120'   -- 2014
-                                                WHEN @ProductVersionTemp LIKE '13.0%'  THEN '130'   -- 2016
-                                                WHEN @ProductVersionTemp LIKE '14.0%'  THEN '140'   -- 2017
-                                                ELSE ''
-                                            END
+    ----- 02.4 Integration Service Section ----------
+    DECLARE @ProductVersionTemp NVARCHAR(50)
+        , @integrationServiceIns NVARCHAR(100)
 
-SET @REGKEY = 'System\CurrentControlSet\Services\' + @integrationServiceIns
+    SET @ProductVersionTemp     = CONVERT(varchar(30), SERVERPROPERTY('ProductVersion'))
+    set @integrationServiceIns = 'MsDtsServer' + 
+                                                CASE
+                                                    WHEN @ProductVersionTemp LIKE '6.5%'   THEN ''
+                                                    WHEN @ProductVersionTemp LIKE '7.0%'   THEN ''
+                                                    WHEN @ProductVersionTemp LIKE '8.0%'   THEN ''
+                                                    WHEN @ProductVersionTemp LIKE '9.0%'   THEN ''      -- 2005
+                                                    WHEN @ProductVersionTemp LIKE '10.%'  THEN '100'   -- 2008
+                                                    --WHEN @ProductVersionTemp LIKE '10.50%' THEN '105'   -- 2008 R2
+                                                    WHEN @ProductVersionTemp LIKE '11.0%'  THEN '110'   -- 2012
+                                                    WHEN @ProductVersionTemp LIKE '12.0%'  THEN '120'   -- 2014
+                                                    WHEN @ProductVersionTemp LIKE '13.0%'  THEN '130'   -- 2016
+                                                    WHEN @ProductVersionTemp LIKE '14.0%'  THEN '140'   -- 2017
+                                                    ELSE ''
+                                                END
 
-INSERT #RegResult ( ResultValue ) EXEC master.sys.xp_regread @rootkey='HKEY_LOCAL_MACHINE', @key=@REGKEY
+    SET @REGKEY = 'System\CurrentControlSet\Services\' + @integrationServiceIns
 
-IF (SELECT ResultValue FROM #RegResult) = 1 
-    INSERT #ServicesServiceStatus (ServiceStatus) EXEC master.dbo.xp_servicecontrol N'QUERYSTATE', @integrationServiceIns
-ELSE 
-    INSERT INTO #ServicesServiceStatus (ServiceStatus) VALUES ('NOT INSTALLED')
+    INSERT #RegResult ( ResultValue ) EXEC master.sys.xp_regread @rootkey='HKEY_LOCAL_MACHINE', @key=@REGKEY
 
-UPDATE #ServicesServiceStatus
-set ServiceName = 'Integration Service - Instance Independent'
-where RowID = @@identity
+    IF (SELECT ResultValue FROM #RegResult) = 1 
+        INSERT #ServicesServiceStatus (ServiceStatus) EXEC master.dbo.xp_servicecontrol N'QUERYSTATE', @integrationServiceIns
+    ELSE 
+        INSERT INTO #ServicesServiceStatus (ServiceStatus) VALUES ('NOT INSTALLED')
 
-TRUNCATE TABLE #RegResult
-/* ---------------------------------- Reporting Service Section ------------------------------------------------*/
-SET @REGKEY = 'System\CurrentControlSet\Services\' + @RS
+    UPDATE #ServicesServiceStatus
+    set ServiceName = 'Integration Service - Instance Independent'
+    where RowID = @@identity
 
-INSERT #RegResult ( ResultValue ) EXEC master.sys.xp_regread @rootkey='HKEY_LOCAL_MACHINE', @key=@REGKEY
+    TRUNCATE TABLE #RegResult
 
-IF (SELECT ResultValue FROM #RegResult) = 1
-    INSERT #ServicesServiceStatus (ServiceStatus) EXEC master.dbo.xp_servicecontrol N'QUERYSTATE',@RS
-ELSE 
-    INSERT INTO #ServicesServiceStatus (ServiceStatus) VALUES ('NOT INSTALLED')
+    ----- 02.5 Reporting Service Section ------------
+    SET @REGKEY = 'System\CurrentControlSet\Services\' + @RS
 
-UPDATE #ServicesServiceStatus
-set ServiceName = 'Reporting Service'
-where RowID = @@identity
+    INSERT #RegResult ( ResultValue ) EXEC master.sys.xp_regread @rootkey='HKEY_LOCAL_MACHINE', @key=@REGKEY
 
-TRUNCATE TABLE #RegResult
+    IF (SELECT ResultValue FROM #RegResult) = 1
+        INSERT #ServicesServiceStatus (ServiceStatus) EXEC master.dbo.xp_servicecontrol N'QUERYSTATE',@RS
+    ELSE 
+        INSERT INTO #ServicesServiceStatus (ServiceStatus) VALUES ('NOT INSTALLED')
 
-/* ---------------------------------- Analysis Service Section -------------------------------------------------*/
-IF @ChkSrvName IS NULL                                
-    BEGIN 
-    SET @OLAP = 'MSSQLServerOLAPService'
+    UPDATE #ServicesServiceStatus
+    set ServiceName = 'Reporting Service'
+    where RowID = @@identity
+
+    TRUNCATE TABLE #RegResult
+
+    ----- 02.6 Analysis Service Section -------------
+    IF @ChkSrvName IS NULL                                
+        BEGIN 
+        SET @OLAP = 'MSSQLServerOLAPService'
+        END
+    ELSE    
+        BEGIN
+        SET @OLAP = 'MSOLAP'+'$'+@ChkSrvName
+        SET @REGKEY = 'System\CurrentControlSet\Services\' + @OLAP
     END
-ELSE    
-    BEGIN
-    SET @OLAP = 'MSOLAP'+'$'+@ChkSrvName
-    SET @REGKEY = 'System\CurrentControlSet\Services\' + @OLAP
-END
 
-INSERT #RegResult ( ResultValue ) EXEC master.sys.xp_regread @rootkey='HKEY_LOCAL_MACHINE', @key=@REGKEY
+    INSERT #RegResult ( ResultValue ) EXEC master.sys.xp_regread @rootkey='HKEY_LOCAL_MACHINE', @key=@REGKEY
 
-IF (SELECT ResultValue FROM #RegResult) = 1 
-    INSERT #ServicesServiceStatus (ServiceStatus) EXEC master.dbo.xp_servicecontrol N'QUERYSTATE', @OLAP
-ELSE 
-    INSERT INTO #ServicesServiceStatus (ServiceStatus) VALUES ('NOT INSTALLED')
+    IF (SELECT ResultValue FROM #RegResult) = 1 
+        INSERT #ServicesServiceStatus (ServiceStatus) EXEC master.dbo.xp_servicecontrol N'QUERYSTATE', @OLAP
+    ELSE 
+        INSERT INTO #ServicesServiceStatus (ServiceStatus) VALUES ('NOT INSTALLED')
 
-UPDATE #ServicesServiceStatus
-set ServiceName = 'Analysis Services'
-where RowID = @@identity
+    UPDATE #ServicesServiceStatus
+    set ServiceName = 'Analysis Services'
+    where RowID = @@identity
 
-TRUNCATE TABLE #RegResult    
-/* ---------------------------------- Full Text Search Service Section -----------------------------------------*/
-SET @REGKEY = 'System\CurrentControlSet\Services\' + @FTS
+    TRUNCATE TABLE #RegResult
 
-INSERT #RegResult ( ResultValue ) EXEC master.sys.xp_regread @rootkey='HKEY_LOCAL_MACHINE', @key=@REGKEY
+    ----- 02.7 Full Text Search Service Section ------
+    SET @REGKEY = 'System\CurrentControlSet\Services\' + @FTS
 
-IF (SELECT ResultValue FROM #RegResult) = 1 
-    INSERT #ServicesServiceStatus (ServiceStatus) EXEC master.dbo.xp_servicecontrol N'QUERYSTATE',@FTS
-ELSE 
-    INSERT INTO #ServicesServiceStatus (ServiceStatus) VALUES ('NOT INSTALLED')
+    INSERT #RegResult ( ResultValue ) EXEC master.sys.xp_regread @rootkey='HKEY_LOCAL_MACHINE', @key=@REGKEY
 
-UPDATE #ServicesServiceStatus
-set ServiceName = 'Full Text Search Service'
-where RowID = @@identity
+    IF (SELECT ResultValue FROM #RegResult) = 1 
+        INSERT #ServicesServiceStatus (ServiceStatus) EXEC master.dbo.xp_servicecontrol N'QUERYSTATE',@FTS
+    ELSE 
+        INSERT INTO #ServicesServiceStatus (ServiceStatus) VALUES ('NOT INSTALLED')
 
-TRUNCATE TABLE #RegResult
-/* ---------------------------------- ServerName Update -----------------------------------------*/
-UPDATE #ServicesServiceStatus
-set ServerName = @TrueSrvName, PhysicalServerName = @PhysicalSrvName
-/* ---------------------------------- Total Service Section -----------------------------------------*/
-PRINT CHAR(13) + CHAR(10) + '--##  SQL Services Status' 
+    UPDATE #ServicesServiceStatus
+    set ServiceName = 'Full Text Search Service'
+    where RowID = @@identity
 
-SELECT ServerName as 'SQL Server\Instance Name'
-    , ServiceName as 'Service Name'
-    , ServiceStatus as 'Service Status'
-    , StatusDateTime as 'Status Date\Time'
-FROM  #ServicesServiceStatus;        
+    TRUNCATE TABLE #RegResult
 
---select * from #ServicesServiceStatus
-------------------------------------------------------------------------
+    ----- 02.8 ServerName Update --------------------
+    UPDATE #ServicesServiceStatus
+    set ServerName = @TrueSrvName, PhysicalServerName = @PhysicalSrvName
+    
+    ----- 02.9 Total Service Section ----------------    
+    PRINT CHAR(13) + CHAR(10) + '--##  SQL Services Status' 
+
+    SELECT ServerName as 'SQL Server\Instance Name'
+        , ServiceName as 'Service Name'
+        , ServiceStatus as 'Service Status'
+        , StatusDateTime as 'Status Date\Time'
+    FROM  #ServicesServiceStatus;        
+
+DROP TABLE #ServicesServiceStatus;   
+DROP TABLE #RegResult;
+
+--=================== 03. OS Hard Drive Space Information =================
 PRINT CHAR(13) + CHAR(10) + '--##  OS Hard Drive Space Available'
 
 CREATE TABLE #HD_space
-    (Drive varchar(2) NOT NULL,
-    [MB free] int NOT NULL)
+(
+    Drive varchar(2) NOT NULL,
+    [MB free] int NOT NULL
+)
 
 INSERT INTO #HD_space(Drive, [MB free])
 EXEC master.sys.xp_fixeddrives;
@@ -412,426 +420,440 @@ SELECT Drive AS 'Drive Letter'
     ,[MB free]  AS 'Free Disk Space (Megabytes)'
 FROM #HD_space
 GO
-------------------------------------------------------------------------
-PRINT CHAR(13) + CHAR(10) + '--##  Database'
 
-SELECT 
-    D.database_id 'Database ID'
-    , D.name AS 'DBName'
-	, Max(D.collation_name)			AS 'Collation'
-    , Max(D.compatibility_level)	AS 'Compatibility'
-    , Max(D.user_access_desc)		AS 'User Access'
-    , Max(D.state_desc)				AS 'Status'
-    , Max(D.recovery_model_desc)	AS 'Recovery Model'
-	, SUM(CASE WHEN F.type_desc ='ROWS' THEN CAST(F.size AS BIGINT) ELSE 0 END) * 8/ 1024	AS TotalDataDiskSpace_MB
-	, SUM(CASE WHEN F.type_desc ='LOG' THEN CAST(F.size AS BIGINT) ELSE 0 END) * 8 / 1024 	AS TotalLogDiskSpace_MB
-FROM SYS.DATABASES D
-    JOIN sys.master_files F					ON D.database_id= F.database_id
-	LEFT JOIN
-	(
-		SELECT database_name, MAX(backup_finish_date) MY_DATE
-		FROM msdb.dbo.backupset
-		WHERE 1=1
-			--DATABASE_NAME ='TL_REPORT'
-			AND type = 'D'	-- Data backup only
-		GROUP BY database_name
-	) B			ON B.database_name = D.name 
---WHERE D.name NOT IN ('master', 'model', 'tempdb')
-	--AND D.DATABASE_ID = 9 AND type_desc ='ROWS'
-GROUP BY D.database_id, D.[name]
-ORDER BY D.[name]
-GO
-------------------------------------------------------------------------
-PRINT CHAR(13) + CHAR(10) + '--##  Database File'
-
-SELECT 
-    D.name AS 'DBName'
-	, S.*
-FROM SYS.DATABASES D
-    INNER JOIN sys.master_files S       ON D.database_id= S.database_id
---WHERE D.name NOT IN ('model')
-ORDER BY D.[name], s.file_id
-GO
-------------------------------------------------------------------------
-PRINT CHAR(13) + CHAR(10) + '--##  Database users Permissions'
-
-DECLARE @DB_USers TABLE(DBName sysname, UserName sysname, LoginType sysname, AssociatedRole varchar(max),create_date datetime,modify_date datetime)
-INSERT @DB_USers EXEC sp_MSforeachdb'
-    use [?]
-    SELECT ''?'' AS DB_Name,
-        case prin.name when ''dbo'' then prin.name + '' (''+ (select SUSER_SNAME(owner_sid) from master.sys.databases where name =''?'') + '')'' else prin.name end AS UserName,
-        prin.type_desc AS LoginType,
-        isnull(USER_NAME(mem.role_principal_id),'''') AS AssociatedRole ,create_date,modify_date
-    FROM sys.database_principals prin
-    LEFT OUTER JOIN sys.database_role_members mem ON prin.principal_id=mem.member_principal_id
-    WHERE prin.sid IS NOT NULL and prin.sid NOT IN (0x00) and
-    prin.is_fixed_role <> 1 AND prin.name NOT LIKE ''##%'''
-
-SELECT dbname,username ,logintype     
-    , create_date ,modify_date , STUFF((SELECT ',' + CONVERT(VARCHAR(500),associatedrole)
-FROM @DB_USers user2
-WHERE user1.DBName=user2.DBName
-    AND user1.UserName = user2.UserName
-        FOR XML PATH('') ),1,1,'') AS Permissions_user
-        FROM @DB_USers user1
-GROUP BY dbname,username ,logintype ,create_date ,modify_date
-HAVING dbname not in ('tempdb')
-ORDER BY DBName,username
-GO
-------------------------------------------------------------------------
-PRINT CHAR(13) + CHAR(10) + '--##  Database Mail Service Status'
-
-CREATE TABLE #Database_Mail_Details2
-    (principal_id VARCHAR(4)
-    ,principal_name VARCHAR(35)
-    ,profile_id VARCHAR(4)
-    ,profile_name VARCHAR(35)
-    ,is_default VARCHAR(4))
-
-INSERT INTO #Database_Mail_Details2
-    (principal_id
-    ,principal_name
-    ,profile_id
-    ,profile_name
-    ,is_default)
-EXEC msdb.dbo.sysmail_help_principalprofile_sp ;
-
-SELECT 
-    principal_id  
-    , principal_name
-    ,profile_id
-    ,profile_name
-    ,is_default
-FROM #Database_Mail_Details2
-
-------------------------------------------------------------------------
-PRINT CHAR(13) + CHAR(10) + '--##  Database Mirroring Status'
-
-SELECT CONVERT(nvarchar(35),DBName)   AS 'Database Name'
-    , MirroringState                 AS 'Mirroring State'
-FROM 
-(
-    SELECT DB.name DBName,
-        CASE
-            WHEN MIRROR.mirroring_state is NULL THEN 'Database Mirroring not configured and/or set'
-            ELSE 'Mirroring is configured and/or set'
-        END AS MirroringState
-    FROM sys.databases DB
-    JOIN sys.database_mirroring MIRROR      ON DB.database_id=MIRROR.database_id WHERE DB.database_id > 4 
-) T
-ORDER BY DBName;
-------------------------------------------------------------------------
-PRINT CHAR(13) + CHAR(10) + '--##  Database Mirroring Database'
-
-SELECT db_name(database_id) as 'Mirror DB_Name', 
-    CASE mirroring_state 
-        WHEN 0 THEN 'Suspended' 
-        WHEN 1 THEN 'Disconnected from other partner' 
-        WHEN 2 THEN 'Synchronizing' 
-        WHEN 3 THEN 'Pending Failover' 
-        WHEN 4 THEN 'Synchronized' 
-        WHEN null THEN 'Database is inaccesible or is not mirrored' 
-    END as 'Mirroring_State', 
-    CASE mirroring_role 
-        WHEN 1 THEN 'Principal' 
-        WHEN 2 THEN 'Mirror' 
-        WHEN null THEN 'Database is not mirrored or is inaccessible' 
-    END as 'Mirroring_Role', 
-    CASE mirroring_safety_level 
-        WHEN 0 THEN 'Unknown state' 
-        WHEN 1 THEN 'OFF (Asynchronous)' 
-        WHEN 2 THEN 'FULL (Synchronous)' 
-        WHEN null THEN 'Database is not mirrored or is inaccessible' 
-    END as 'Mirror_Safety_Level', 
-    Mirroring_Partner_Name as 'Mirror_Endpoint', 
-    Mirroring_Partner_Instance as 'Mirror_ServerName', 
-    Mirroring_Witness_Name as 'Witness_Endpoint', 
-    CASE Mirroring_Witness_State 
-        WHEN 0 THEN 'Unknown' 
-        WHEN 1 THEN 'Connected' 
-        WHEN 2 THEN 'Disconnected' 
-        WHEN null THEN 'Database is not mirrored or is inaccessible' 
-    END as 'Witness_State', 
-    Mirroring_Connection_Timeout as 'Failover Timeout in seconds', 
-    Mirroring_Redo_Queue, 
-    Mirroring_Redo_Queue_Type 
-FROM sys.Database_mirroring
-WHERE mirroring_role is not null;
-------------------------------------------------------------------------
-PRINT CHAR(13) + CHAR(10) + '--##  Database Log Shipping Status'
-
-IF (CONVERT(VARchar(30), SERVERPROPERTY('EDITION')) LIKE 'Express%')
-BEGIN
-    SELECT 
-          '' [status]
-        , '' [is_primary]
-        , '' [server]
-        , '' [database_name]
-        , '' [time_since_last_backup]
-        , '' [last_backup_file]
-        , '' [backup_threshold]
-        , '' [is_backup_alert_enabled]
-        , '' [time_since_last_copy]
-        , '' [last_copied_file]
-        , '' [time_since_last_restore]
-        , '' [last_restored_file]
-        , '' [last_restored_latency]
-        , '' [restore_threshold] 
-        , '' [is_restore_alert_enabled]
-    FROM SYS.objects
-    WHERE 1 = 0
-END    
-ELSE    
-BEGIN
-	CREATE TABLE #LogShipping
-    (   [status] BIT
-        , [is_primary] BIT
-        , [server] sysname
-        , [database_name] sysname
-        , [time_since_last_backup] INT
-        , [last_backup_file] NVARCHAR(50)
-        , [backup_threshold] INT
-        , [is_backup_alert_enabled] BIT
-        , [time_since_last_copy] INT
-        , [last_copied_file] NVARCHAR(50)
-        , [time_since_last_restore] INT
-        , [last_restored_file]  NVARCHAR(50)
-        , [last_restored_latency] INT
-        , [restore_threshold] INT
-        , [is_restore_alert_enabled] BIT
-    )
-    INSERT INTO #LogShipping
-    EXEC sp_help_log_shipping_monitor;
-    
-    SELECT * FROM #LogShipping
-
-    DROP TABLE #LogShipping
-END    
-------------------------------------------------------------------------
-PRINT CHAR(13) + CHAR(10) + '--##  SQL Job Status'
-
-SELECT name JobName
-	, CASE enabled WHEN 0 THEN 'N' ELSE 'Y' END EnableYN
-FROM msdb.dbo.sysjobs
-where name not in ('syspolicy_purge_history')
-ORDER BY name
-
-------------------------------------------------------------------------
-PRINT CHAR(13) + CHAR(10) + '--##  SQL Server Agent Job Step'
-
-SELECT 
-    j.[job_id] AS [JobID]
-    , j.[name] AS [JobName]
-    , [svr].[name] AS [OriginatingServerName]
-    , [js].[step_id] AS [JobStartStepNo]
-    , [js].[step_name] AS [JobStartStepName]
-    , CASE j.[delete_level]
-        WHEN 0 THEN 'Never'
-        WHEN 1 THEN 'On Success'
-        WHEN 2 THEN 'On Failure'
-        WHEN 3 THEN 'On Completion'
-      END AS [JobDeletionCriterion]
-    , js.step_id
-    , js.step_name
-    , js.subsystem
-    --, js.command   // 줄바꿈 포맷이 깨져서 주석처리
-    , js.on_success_action
-    , js.on_fail_step_id
-    , js.database_name
-    , js.last_run_date
-FROM 
-    [msdb].[dbo].[sysjobs] AS j    
-    LEFT JOIN [msdb].[sys].[servers] AS [svr]                ON j.[originating_server_id] = [svr].[server_id]
-    LEFT JOIN [msdb].[dbo].[sysjobsteps] AS [js]            ON j.job_id = [js].[job_id] --AND j.[start_step_id] = [js].[step_id]
-WHERE j.[name] not in ('syspolicy_purge_history')
-ORDER BY [JobName], js.step_id
-GO
-------------------------------------------------------------------------
-PRINT CHAR(13) + CHAR(10) + '--##  SQLServerAgent_Alerts'
-
-select * from  msdb.dbo.sysalerts 
-------------------------------------------------------------------------
-PRINT CHAR(13) + CHAR(10) + '--##  SQLServerAgent_Operators'
-
-SELECT name, email_address, enabled FROM MSDB.dbo.sysoperators ORDER BY name
-------------------------------------------------------------------------
-PRINT CHAR(13) + CHAR(10) + '--##  SSISPackagesInMSDB'
-
-select name, description, createdate
-from msdb..sysssispackages
-where description not like 'System Data Collector Package'
-GO
-------------------------------------------------------------------------
-PRINT CHAR(13) + CHAR(10) + '--##  Linked Servers'
-
-SELECT 
-    CONVERT(nvarchar(25), name) as 'Name'
-  , CONVERT(nvarchar(25), product) as 'Product'
-  , CONVERT(nvarchar(25), provider) as 'Provider'
-  , CONVERT(nvarchar(25),data_source) as 'Data Source'
- FROM sys.servers
- WHERE is_linked ='1'
-
-------------------------------------------------------------------------
-PRINT CHAR(13) + CHAR(10) + '--##  Linked Servers Logins'
-
-SELECT s.server_id ,s.name 
-    , 'Server ' = Case s.Server_id   when 0 then 'Current Server'   else 'Remote Server'   end
-    , s.data_source, s.product , s.provider  , s.catalog  
-    , 'Local Login ' = case sl.uses_self_credential   when 1 then 'Uses Self Credentials' else ssp.name end
-    , 'Remote Login Name' = sl.remote_name 
-    , 'RPC Out Enabled'    = case s.is_rpc_out_enabled when 1 then 'True' else 'False' end 
-    , 'Data Access Enabled' = case s.is_data_access_enabled when 1 then 'True' else 'False' end
-    , s.modify_date
-FROM sys.Servers s
-    LEFT JOIN sys.linked_logins sl ON s.server_id = sl.server_id
-    LEFT JOIN sys.server_principals ssp ON ssp.principal_id = sl.local_principal_id
-WHERE s.server_id <> 0
-GO
-
-------------------------------------------------------------------------
-PRINT CHAR(13) + CHAR(10) + '--##  Script out the Logon Triggers'
-
-SELECT SSM.definition
-FROM sys.server_triggers AS ST
-    JOIN sys.server_sql_modules AS SSM ON ST.object_id = SSM.object_id
-
-------------------------------------------------------------------------
-PRINT CHAR(13) + CHAR(10) + '--##  REPLICATION'
-
-IF EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE='BASE TABLE' AND TABLE_NAME='sysextendedarticlesview') 
-(
-    SELECT  sub.srvname,  pub.name, art.name2, art.dest_table, art.dest_owner
-    FROM sysextendedarticlesview art
-        inner join syspublications pub on (art.pubid = pub.pubid)
-        inner join syssubscriptions sub on (sub.artid = art.artid)
-    )
-ELSE
-    SELECT  '' srvname,  '' name, '' name2, '' dest_table, '' dest_owner
-    FROM SYS.objects
-    WHERE 1 = 0
-GO
-------------------------------------------------------------------------
-PRINT CHAR(13) + CHAR(10) + '--##  SQL Mail'
-
-CREATE TABLE #Database_Mail_Details
-(Status NVARCHAR(7))
-
-IF EXISTS(SELECT * FROM master.sys.configurations WHERE configuration_id = 16386 AND value_in_use =1)
-BEGIN
-    INSERT INTO #Database_Mail_Details (Status)
-    Exec msdb.dbo.sysmail_help_status_sp
-END
-
-SELECT [Status] AS 'Database Mail Service Status'
-FROM #Database_Mail_Details;
-GO
-------------------------------------------------------------------------
-PRINT CHAR(13) + CHAR(10) + '--##  Report Server (SSRS) Reports'
-
-IF EXISTS (SELECT name FROM sys.databases where name = 'ReportServer')
-BEGIN
-    SELECT CONVERT(nvarchar(20),Rol.RoleName) AS 'Role Name'
-        ,CONVERT(nvarchar(35),Us.UserName) AS 'User Name'
-        ,CONVERT(nvarchar(35),Cat.[Name]) AS 'Report Name'
-        ,CASE Cat.Type
-            WHEN 1 THEN 'Folder'
-            WHEN 2 THEN 'Report' 
-            WHEN 3 THEN 'Resource'
-            WHEN 4 THEN 'Linked Report' 
-            WHEN 5 THEN 'Data Source' ELSE ''
-        END AS 'Catalog Type'
-        ,CONVERT(nvarchar(35),Cat.Description) AS'Description'
-    FROM reportserver.dbo.Catalog Cat 
-        INNER JOIN reportserver.dbo.Policies Pol        ON Cat.PolicyID = Pol.PolicyID
-        INNER JOIN reportserver.dbo.PolicyUserRole PUR  ON Pol.PolicyID = PUR.PolicyID 
-        INNER JOIN reportserver.dbo.Users Us            ON PUR.UserID = Us.UserID 
-        INNER JOIN reportserver.dbo.Roles Rol           ON PUR.RoleID = Rol.RoleID
-    WHERE Cat.Type in (1,2)
-    ORDER BY Cat.PATH 
-END
-ELSE
-BEGIN 
-    --PRINT '** No SSRS Reports Information Detection of ** '
-    SELECT '' AS 'Role Name'
-        , '' AS 'User Name'
-        , '' AS 'Report Name'
-        , '' AS 'Catalog Type'
-        , '' AS 'Description'
-    FROM SYS.objects
-    WHERE 1 = 0
-END
-GO
-------------------------------------------------------------------------
-PRINT CHAR(13) + CHAR(10) + '--##  Engine base folder & Port Info'
-
-if (CONVERT(decimal(5, 1), CONVERT(char(4), SERVERPROPERTY('ProductVersion'))) >= 11.0 )    -- Windows 2012 이상만 sys.dm_server_registry 이용. 2008 r2 sp1부터 가능하지만 귀찮
-BEGIN
-    select *
-    from sys.dm_server_registry
-    where (
-            (registry_key = 'HKLM\SYSTEM\CurrentControlSet\Services\MSSQLSERVER' and value_name = 'ImagePath')
-                or (registry_key like '%SuperSocketNetLib\Tcp\IP%')
-        )
-        and registry_key not in
-        (
-            SELECT registry_key
-            FROM sys.dm_server_registry
-            WHERE registry_key like '%SuperSocketNetLib\Tcp\IP%' AND value_name = 'Enabled' and value_data = 0
-        )
-END
-ELSE
-BEGIN
-    ------------------------------------------------------------------------
-    DECLARE @HkeyLocal nvarchar(18)
-        , @Instance varchar(100)
-        , @MSSqlServerRegPath nvarchar(200)
-        , @TcpPort nvarchar(100)
-        , @TcpDynamicPorts nvarchar(100)
-        , @InstanceVersion  varchar(100)
-
-    SET @InstanceVersion = 
-        CASE CONVERT(char(4), SERVERPROPERTY('ProductVersion'))
-            WHEN '9.00' THEN '9'
-            WHEN '10.0' THEN '10'
-            WHEN '10.5' THEN '10_50'
-            WHEN '11.0' THEN '11'
-            WHEN '12.0' THEN '12'
-        END
-
-    SET @Instance = 'MSSQL' + @InstanceVersion + '.' +  CONVERT(VARCHAR(50), ISNULL(SERVERPROPERTY('InstanceName'), 'MSSQLSERVER')) 
-
-    --SET @Instance ='MSSQL10_50.SQLEXPRESS'
-    SET @HkeyLocal=N'HKEY_LOCAL_MACHINE'
-    SET @MSSqlServerRegPath=N'SOFTWARE\Microsoft\\Microsoft SQL Server\'
-        + @Instance + '\MSSQLServer\SuperSocketNetLib\Tcp\IPAll'
-    
-    --Print @MSSqlServerRegPath
-    EXEC xp_instance_regread @HkeyLocal    , @MSSqlServerRegPath    , N'TcpPort'    , @TcpPort OUTPUT
-    EXEC xp_instance_regread @HkeyLocal    , @MSSqlServerRegPath    , N'TcpDynamicPorts'    , @TcpDynamicPorts OUTPUT
-
-    SELECT @HkeyLocal + '\' +  @MSSqlServerRegPath registry_key, 'TcpPort' value_name, isnull(@TcpPort, '') as value_data
-    union all
-    SELECT @HkeyLocal + '\' +  @MSSqlServerRegPath registry_key, 'TcpDynamicPorts' , isnull(@TcpDynamicPorts, '') as value_data 
-END
-GO
-
-------------------------------------------------------------------------
-PRINT CHAR(13) + CHAR(10) + '--##  Fulltext Info'
-
-SELECT * from sys.fulltext_indexes;
-GO
-------------------------------------------------------------------------
-PRINT CHAR(13) + CHAR(10) + '--##  List all System and Mirroring endpoints'
-
-select * from sys.endpoints
-GO
-------------------------------------------------------------------------
--- Performing clean up
---DROP TABLE #nodes;
-DROP TABLE #ServicesServiceStatus;   
-DROP TABLE #RegResult;
 DROP TABLE #HD_space;
-DROP TABLE #Database_Mail_Details;
-DROP TABLE #Database_Mail_Details2;
-GO
+--=================== 04. Database Information =================
+    ----- 03.1 Database Section ---------------------
+    PRINT CHAR(13) + CHAR(10) + '--##  Database'
+
+    SELECT 
+        D.database_id 'Database ID'
+        , D.name AS 'DBName'
+        , Max(D.collation_name)			AS 'Collation'
+        , Max(D.compatibility_level)	AS 'Compatibility'
+        , Max(D.user_access_desc)		AS 'User Access'
+        , Max(D.state_desc)				AS 'Status'
+        , Max(D.recovery_model_desc)	AS 'Recovery Model'
+        , SUM(CASE WHEN F.type_desc ='ROWS' THEN CAST(F.size AS BIGINT) ELSE 0 END) * 8/ 1024	AS TotalDataDiskSpace_MB
+        , SUM(CASE WHEN F.type_desc ='LOG' THEN CAST(F.size AS BIGINT) ELSE 0 END) * 8 / 1024 	AS TotalLogDiskSpace_MB
+    FROM SYS.DATABASES D
+        JOIN sys.master_files F					ON D.database_id= F.database_id
+        LEFT JOIN
+        (
+            SELECT database_name, MAX(backup_finish_date) MY_DATE
+            FROM msdb.dbo.backupset
+            WHERE 1=1
+                --DATABASE_NAME ='TL_REPORT'
+                AND type = 'D'	-- Data backup only
+            GROUP BY database_name
+        ) B			ON B.database_name = D.name 
+    --WHERE D.name NOT IN ('master', 'model', 'tempdb')
+        --AND D.DATABASE_ID = 9 AND type_desc ='ROWS'
+    GROUP BY D.database_id, D.[name]
+    ORDER BY D.[name]
+    GO
+
+    ----- 03.2 Database File Section ---------------------
+    PRINT CHAR(13) + CHAR(10) + '--##  Database File'
+
+    SELECT 
+        D.name AS 'DBName'
+        , S.*
+    FROM SYS.DATABASES D
+        INNER JOIN sys.master_files S       ON D.database_id= S.database_id
+    --WHERE D.name NOT IN ('model')
+    ORDER BY D.[name], s.file_id
+    GO
+
+    ----- 03.3 Database users Section ---------------------
+    PRINT CHAR(13) + CHAR(10) + '--##  Database users Permissions'
+
+    DECLARE @DB_USers TABLE(DBName sysname, UserName sysname, LoginType sysname, AssociatedRole varchar(max),create_date datetime,modify_date datetime)
+    INSERT @DB_USers EXEC sp_MSforeachdb'
+        use [?]
+        SELECT ''?'' AS DB_Name,
+            case prin.name when ''dbo'' then prin.name + '' (''+ (select SUSER_SNAME(owner_sid) from master.sys.databases where name =''?'') + '')'' else prin.name end AS UserName,
+            prin.type_desc AS LoginType,
+            isnull(USER_NAME(mem.role_principal_id),'''') AS AssociatedRole ,create_date,modify_date
+        FROM sys.database_principals prin
+        LEFT OUTER JOIN sys.database_role_members mem ON prin.principal_id=mem.member_principal_id
+        WHERE prin.sid IS NOT NULL and prin.sid NOT IN (0x00) and
+        prin.is_fixed_role <> 1 AND prin.name NOT LIKE ''##%'''
+
+    SELECT dbname,username ,logintype     
+        , create_date ,modify_date , STUFF((SELECT ',' + CONVERT(VARCHAR(500),associatedrole)
+    FROM @DB_USers user2
+    WHERE user1.DBName=user2.DBName
+        AND user1.UserName = user2.UserName
+            FOR XML PATH('') ),1,1,'') AS Permissions_user
+            FROM @DB_USers user1
+    GROUP BY dbname,username ,logintype ,create_date ,modify_date
+    HAVING dbname not in ('tempdb')
+    ORDER BY DBName,username
+    GO
+
+    ----- 03.4 Database Mail Service Section --------------
+    PRINT CHAR(13) + CHAR(10) + '--##  Database Mail Service Status'
+
+    CREATE TABLE #Database_Mail_Details2
+        (principal_id VARCHAR(4)
+        ,principal_name VARCHAR(35)
+        ,profile_id VARCHAR(4)
+        ,profile_name VARCHAR(35)
+        ,is_default VARCHAR(4))
+
+    INSERT INTO #Database_Mail_Details2
+        (principal_id
+        ,principal_name
+        ,profile_id
+        ,profile_name
+        ,is_default)
+    EXEC msdb.dbo.sysmail_help_principalprofile_sp ;
+
+    SELECT 
+        principal_id  
+        , principal_name
+        ,profile_id
+        ,profile_name
+        ,is_default
+    FROM #Database_Mail_Details2
+
+    DROP TABLE #Database_Mail_Details2;
+
+    ----- 03.5 Database Mirroring Service Section ---------
+    PRINT CHAR(13) + CHAR(10) + '--##  Database Mirroring Status'
+
+    SELECT CONVERT(nvarchar(35),DBName)   AS 'Database Name'
+        , MirroringState                 AS 'Mirroring State'
+    FROM 
+    (
+        SELECT DB.name DBName,
+            CASE
+                WHEN MIRROR.mirroring_state is NULL THEN 'Database Mirroring not configured and/or set'
+                ELSE 'Mirroring is configured and/or set'
+            END AS MirroringState
+        FROM sys.databases DB
+        JOIN sys.database_mirroring MIRROR      ON DB.database_id=MIRROR.database_id WHERE DB.database_id > 4 
+    ) T
+    ORDER BY DBName;
+
+    ----- 03.6 Database Mirroring Database Section --------
+    PRINT CHAR(13) + CHAR(10) + '--##  Database Mirroring Database'
+
+    SELECT db_name(database_id) as 'Mirror DB_Name', 
+        CASE mirroring_state 
+            WHEN 0 THEN 'Suspended' 
+            WHEN 1 THEN 'Disconnected from other partner' 
+            WHEN 2 THEN 'Synchronizing' 
+            WHEN 3 THEN 'Pending Failover' 
+            WHEN 4 THEN 'Synchronized' 
+            WHEN null THEN 'Database is inaccesible or is not mirrored' 
+        END as 'Mirroring_State', 
+        CASE mirroring_role 
+            WHEN 1 THEN 'Principal' 
+            WHEN 2 THEN 'Mirror' 
+            WHEN null THEN 'Database is not mirrored or is inaccessible' 
+        END as 'Mirroring_Role', 
+        CASE mirroring_safety_level 
+            WHEN 0 THEN 'Unknown state' 
+            WHEN 1 THEN 'OFF (Asynchronous)' 
+            WHEN 2 THEN 'FULL (Synchronous)' 
+            WHEN null THEN 'Database is not mirrored or is inaccessible' 
+        END as 'Mirror_Safety_Level', 
+        Mirroring_Partner_Name as 'Mirror_Endpoint', 
+        Mirroring_Partner_Instance as 'Mirror_ServerName', 
+        Mirroring_Witness_Name as 'Witness_Endpoint', 
+        CASE Mirroring_Witness_State 
+            WHEN 0 THEN 'Unknown' 
+            WHEN 1 THEN 'Connected' 
+            WHEN 2 THEN 'Disconnected' 
+            WHEN null THEN 'Database is not mirrored or is inaccessible' 
+        END as 'Witness_State', 
+        Mirroring_Connection_Timeout as 'Failover Timeout in seconds', 
+        Mirroring_Redo_Queue, 
+        Mirroring_Redo_Queue_Type 
+    FROM sys.Database_mirroring
+    WHERE mirroring_role is not null;
+
+    ----- 03.7 Database Log Shipping Section --------------
+    PRINT CHAR(13) + CHAR(10) + '--##  Database Log Shipping Status'
+
+    IF (CONVERT(VARchar(30), SERVERPROPERTY('EDITION')) LIKE 'Express%')
+    BEGIN
+        SELECT 
+            '' [status]
+            , '' [is_primary]
+            , '' [server]
+            , '' [database_name]
+            , '' [time_since_last_backup]
+            , '' [last_backup_file]
+            , '' [backup_threshold]
+            , '' [is_backup_alert_enabled]
+            , '' [time_since_last_copy]
+            , '' [last_copied_file]
+            , '' [time_since_last_restore]
+            , '' [last_restored_file]
+            , '' [last_restored_latency]
+            , '' [restore_threshold] 
+            , '' [is_restore_alert_enabled]
+        FROM SYS.objects
+        WHERE 1 = 0
+    END    
+    ELSE    
+    BEGIN
+        CREATE TABLE #LogShipping
+        (   [status] BIT
+            , [is_primary] BIT
+            , [server] sysname
+            , [database_name] sysname
+            , [time_since_last_backup] INT
+            , [last_backup_file] NVARCHAR(50)
+            , [backup_threshold] INT
+            , [is_backup_alert_enabled] BIT
+            , [time_since_last_copy] INT
+            , [last_copied_file] NVARCHAR(50)
+            , [time_since_last_restore] INT
+            , [last_restored_file]  NVARCHAR(50)
+            , [last_restored_latency] INT
+            , [restore_threshold] INT
+            , [is_restore_alert_enabled] BIT
+        )
+        INSERT INTO #LogShipping
+        EXEC sp_help_log_shipping_monitor;
+        
+        SELECT * FROM #LogShipping
+
+        DROP TABLE #LogShipping
+    END    
+
+--=================== 05. SQL Job Information =================
+    ----- 05.1 SQL Job Section --------------
+    PRINT CHAR(13) + CHAR(10) + '--##  SQL Job'
+
+    SELECT name JobName
+        , CASE enabled WHEN 0 THEN 'N' ELSE 'Y' END EnableYN
+    FROM msdb.dbo.sysjobs
+    where name not in ('syspolicy_purge_history')
+    ORDER BY name
+
+    ----- 05.2 SQL Job Step Section --------------
+    PRINT CHAR(13) + CHAR(10) + '--##  SQL Job Step'
+
+    SELECT 
+        j.[job_id] AS [JobID]
+        , j.[name] AS [JobName]
+        , [svr].[name] AS [OriginatingServerName]
+        , [js].[step_id] AS [JobStartStepNo]
+        , [js].[step_name] AS [JobStartStepName]
+        , CASE j.[delete_level]
+            WHEN 0 THEN 'Never'
+            WHEN 1 THEN 'On Success'
+            WHEN 2 THEN 'On Failure'
+            WHEN 3 THEN 'On Completion'
+        END AS [JobDeletionCriterion]
+        , js.step_id
+        , js.step_name
+        , js.subsystem
+        --, js.command   // 줄바꿈 포맷이 깨져서 주석처리
+        , js.on_success_action
+        , js.on_fail_step_id
+        , js.database_name
+        , js.last_run_date
+    FROM 
+        [msdb].[dbo].[sysjobs] AS j    
+        LEFT JOIN [msdb].[sys].[servers] AS [svr]                ON j.[originating_server_id] = [svr].[server_id]
+        LEFT JOIN [msdb].[dbo].[sysjobsteps] AS [js]            ON j.job_id = [js].[job_id] --AND j.[start_step_id] = [js].[step_id]
+    WHERE j.[name] not in ('syspolicy_purge_history')
+    ORDER BY [JobName], js.step_id
+    GO
+
+    ----- 05.3 SQL Job Alerts Section --------------
+    PRINT CHAR(13) + CHAR(10) + '--##  SQLServerAgent_Alerts'
+
+    select * from  msdb.dbo.sysalerts 
+
+    ----- 05.4 SQL Job Operators Section -----------
+    PRINT CHAR(13) + CHAR(10) + '--##  SQLServerAgent_Operators'
+
+    SELECT name, email_address, enabled FROM MSDB.dbo.sysoperators ORDER BY name
+    
+    ----- 05.5 SSISPackagesInMSDB Section -----------
+    PRINT CHAR(13) + CHAR(10) + '--##  SSISPackagesInMSDB'
+
+    select name, description, createdate
+    from msdb..sysssispackages
+    where description not like 'System Data Collector Package'
+    GO
+
+--=================== 06. Linked Servers =================
+    ----- 06.1 Linked Servers Section -----------
+    PRINT CHAR(13) + CHAR(10) + '--##  Linked Servers'
+
+    SELECT 
+        CONVERT(nvarchar(25), name) as 'Name'
+    , CONVERT(nvarchar(25), product) as 'Product'
+    , CONVERT(nvarchar(25), provider) as 'Provider'
+    , CONVERT(nvarchar(25),data_source) as 'Data Source'
+    FROM sys.servers
+    WHERE is_linked ='1'
+
+    ----- 06.2 Linked Servers Logins Section ------
+    PRINT CHAR(13) + CHAR(10) + '--##  Linked Servers Logins'
+
+    SELECT s.server_id ,s.name 
+        , 'Server ' = Case s.Server_id   when 0 then 'Current Server'   else 'Remote Server'   end
+        , s.data_source, s.product , s.provider  , s.catalog  
+        , 'Local Login ' = case sl.uses_self_credential   when 1 then 'Uses Self Credentials' else ssp.name end
+        , 'Remote Login Name' = sl.remote_name 
+        , 'RPC Out Enabled'    = case s.is_rpc_out_enabled when 1 then 'True' else 'False' end 
+        , 'Data Access Enabled' = case s.is_data_access_enabled when 1 then 'True' else 'False' end
+        , s.modify_date
+    FROM sys.Servers s
+        LEFT JOIN sys.linked_logins sl ON s.server_id = sl.server_id
+        LEFT JOIN sys.server_principals ssp ON ssp.principal_id = sl.local_principal_id
+    WHERE s.server_id <> 0
+    GO
+
+--=================== 07. ETC =============================
+    ----- 07.1 Logon Triggers Section -----------
+    PRINT CHAR(13) + CHAR(10) + '--##  SQL Server Logon Triggers'
+
+    SELECT SSM.definition
+    FROM sys.server_triggers AS ST
+        JOIN sys.server_sql_modules AS SSM      ON ST.object_id = SSM.object_id
+
+    ----- 07.2 Logon Triggers Section -----------
+    PRINT CHAR(13) + CHAR(10) + '--##  REPLICATION'
+
+    IF EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE='BASE TABLE' AND TABLE_NAME='sysextendedarticlesview') 
+    (
+        SELECT  sub.srvname,  pub.name, art.name2, art.dest_table, art.dest_owner
+        FROM sysextendedarticlesview art
+            inner join syspublications pub on (art.pubid = pub.pubid)
+            inner join syssubscriptions sub on (sub.artid = art.artid)
+        )
+    ELSE
+        SELECT  '' srvname,  '' name, '' name2, '' dest_table, '' dest_owner
+        FROM SYS.objects
+        WHERE 1 = 0
+    GO
+
+    ----- 07.3 SQL Mail Section -----------
+    PRINT CHAR(13) + CHAR(10) + '--##  SQL Mail'
+
+    CREATE TABLE #Database_Mail_Details
+    (Status NVARCHAR(7))
+
+    IF EXISTS(SELECT * FROM master.sys.configurations WHERE configuration_id = 16386 AND value_in_use =1)
+    BEGIN
+        INSERT INTO #Database_Mail_Details (Status)
+        Exec msdb.dbo.sysmail_help_status_sp
+    END
+
+    SELECT [Status] AS 'Database Mail Service Status'
+    FROM #Database_Mail_Details;
+    GO
+
+    DROP TABLE #Database_Mail_Details;
+
+    ----- 07.4 Report Server (SSRS) Section -----------
+    PRINT CHAR(13) + CHAR(10) + '--##  Report Server (SSRS)'
+
+    IF EXISTS (SELECT name FROM sys.databases where name = 'ReportServer')
+    BEGIN
+        SELECT CONVERT(nvarchar(20),Rol.RoleName) AS 'Role Name'
+            ,CONVERT(nvarchar(35),Us.UserName) AS 'User Name'
+            ,CONVERT(nvarchar(35),Cat.[Name]) AS 'Report Name'
+            ,CASE Cat.Type
+                WHEN 1 THEN 'Folder'
+                WHEN 2 THEN 'Report' 
+                WHEN 3 THEN 'Resource'
+                WHEN 4 THEN 'Linked Report' 
+                WHEN 5 THEN 'Data Source' ELSE ''
+            END AS 'Catalog Type'
+            ,CONVERT(nvarchar(35),Cat.Description) AS'Description'
+        FROM reportserver.dbo.Catalog Cat 
+            INNER JOIN reportserver.dbo.Policies Pol        ON Cat.PolicyID = Pol.PolicyID
+            INNER JOIN reportserver.dbo.PolicyUserRole PUR  ON Pol.PolicyID = PUR.PolicyID 
+            INNER JOIN reportserver.dbo.Users Us            ON PUR.UserID = Us.UserID 
+            INNER JOIN reportserver.dbo.Roles Rol           ON PUR.RoleID = Rol.RoleID
+        WHERE Cat.Type in (1,2)
+        ORDER BY Cat.PATH 
+    END
+    ELSE
+    BEGIN 
+        --PRINT '** No SSRS Reports Information Detection of ** '
+        SELECT '' AS 'Role Name'
+            , '' AS 'User Name'
+            , '' AS 'Report Name'
+            , '' AS 'Catalog Type'
+            , '' AS 'Description'
+        FROM SYS.objects
+        WHERE 1 = 0
+    END
+    GO
+
+    ----- 07.5 Engine base folder & Port Section -----------
+    PRINT CHAR(13) + CHAR(10) + '--##  Engine base folder & Port Info'
+
+    if (CONVERT(decimal(5, 1), CONVERT(char(4), SERVERPROPERTY('ProductVersion'))) >= 11.0 )    -- Windows 2012 이상만 sys.dm_server_registry 이용. 2008 r2 sp1부터 가능하지만 귀찮
+    BEGIN
+        select *
+        from sys.dm_server_registry
+        where (
+                (registry_key = 'HKLM\SYSTEM\CurrentControlSet\Services\MSSQLSERVER' and value_name = 'ImagePath')
+                    or (registry_key like '%SuperSocketNetLib\Tcp\IP%')
+            )
+            and registry_key not in
+            (
+                SELECT registry_key
+                FROM sys.dm_server_registry
+                WHERE registry_key like '%SuperSocketNetLib\Tcp\IP%' AND value_name = 'Enabled' and value_data = 0
+            )
+    END
+    ELSE
+    BEGIN
+        DECLARE @HkeyLocal nvarchar(18)
+            , @Instance varchar(100)
+            , @MSSqlServerRegPath nvarchar(200)
+            , @TcpPort nvarchar(100)
+            , @TcpDynamicPorts nvarchar(100)
+            , @InstanceVersion  varchar(100)
+
+        SET @InstanceVersion = 
+            CASE CONVERT(char(4), SERVERPROPERTY('ProductVersion'))
+                WHEN '9.00' THEN '9'
+                WHEN '10.0' THEN '10'
+                WHEN '10.5' THEN '10_50'
+                WHEN '11.0' THEN '11'
+                WHEN '12.0' THEN '12'
+            END
+
+        SET @Instance = 'MSSQL' + @InstanceVersion + '.' +  CONVERT(VARCHAR(50), ISNULL(SERVERPROPERTY('InstanceName'), 'MSSQLSERVER')) 
+
+        --SET @Instance ='MSSQL10_50.SQLEXPRESS'
+        SET @HkeyLocal=N'HKEY_LOCAL_MACHINE'
+        SET @MSSqlServerRegPath=N'SOFTWARE\Microsoft\\Microsoft SQL Server\'
+            + @Instance + '\MSSQLServer\SuperSocketNetLib\Tcp\IPAll'
+        
+        --Print @MSSqlServerRegPath
+        EXEC xp_instance_regread @HkeyLocal    , @MSSqlServerRegPath    , N'TcpPort'    , @TcpPort OUTPUT
+        EXEC xp_instance_regread @HkeyLocal    , @MSSqlServerRegPath    , N'TcpDynamicPorts'    , @TcpDynamicPorts OUTPUT
+
+        SELECT @HkeyLocal + '\' +  @MSSqlServerRegPath registry_key, 'TcpPort' value_name, isnull(@TcpPort, '') as value_data
+        union all
+        SELECT @HkeyLocal + '\' +  @MSSqlServerRegPath registry_key, 'TcpDynamicPorts' , isnull(@TcpDynamicPorts, '') as value_data 
+    END
+    GO
+
+    ----- 07.6 Fulltext Section ---------------
+    PRINT CHAR(13) + CHAR(10) + '--##  Fulltext'
+
+    SELECT * from sys.fulltext_indexes;
+    GO
+
+    ----- 07.7 Fulltext Section ---------------
+    PRINT CHAR(13) + CHAR(10) + '--##  List all endpoints'
+
+    select * from sys.endpoints
+    GO
