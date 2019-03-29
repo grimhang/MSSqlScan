@@ -72,22 +72,6 @@ IF @ProductVersion LIKE '12.0%'  SET @ProductVersion = 'SQL Server 2014'
 IF @ProductVersion LIKE '13.0%'  SET @ProductVersion = 'SQL Server 2016'  -- for future use
 IF @ProductVersion LIKE '14.0%'  SET @ProductVersion = 'SQL Server 2017'  -- for future use
 
-/* This section only works on SQL 2012 and higher */
-
--- SELECT 
---     [name]
---     ,[description]
---     ,[value] 
---     ,[minimum] 
---     ,[maximum] 
---     ,[value_in_use]
--- INTO #SQL_Server_Settings
--- FROM master.sys.configurations;        
-
---SET @MaxMemory = (select CONVERT(char(10), [value_in_use]) from  #SQL_Server_Settings where name = 'max server memory (MB)')
---SET @MinMemory = (select CONVERT(char(10), [value_in_use]) from  #SQL_Server_Settings where name = 'min server memory (MB)')
--- SET @MaxMemory = (select CONVERT(char(10), [value_in_use]) from  master.sys.configurations where name = 'max server memory (MB)')
--- SET @MinMemory = (select CONVERT(char(10), [value_in_use]) from  master.sys.configurations where name = 'min server memory (MB)')
 ------------------------------------------------------------------------
 SET @DomainName = DEFAULT_DOMAIN()
 ------------------------------------------------------------------------
@@ -114,8 +98,6 @@ IF @@rowcount = 0
     SET @NodeName1 = 'NONE' -- NONE for no cluster
 ELSE
 BEGIN
-    -- SET @NodeName1 = (SELECT top 1 NodeName from #nodes order by NodeName)
-    -- SET @NodeName2 = (SELECT TOP 1 NodeName from #nodes where NodeName > @NodeName1)
     SET @NodeName1 = (SELECT top 1 NodeName from sys.dm_os_cluster_nodes order by NodeName)
     SET @NodeName2 = (SELECT TOP 1 NodeName from sys.dm_os_cluster_nodes  where NodeName > @NodeName1)
 END
@@ -150,8 +132,7 @@ IF (SELECT CONVERT(int, SERVERPROPERTY('ISSingleUser'))) = 1
     SET @ISSingleUser = 'Single User'
 ELSE
     SET @ISSingleUser = 'Multi User'
-------------------------------------------------------------------------
---SET @ErrorLogLocation = (SELECT REPLACE(CAST(SERVERPROPERTY('ErrorLogFileName') AS VARCHAR(500)), 'ERRORLOG',''))
+
 ------------------------------------------------------------------------
 SELECT KeyName, KeyVal
 FROM
@@ -170,8 +151,8 @@ FROM
 
     UNION SELECT 11, 'Logical CPU Count'                , @physical_CPU_Count
     
-    UNION SELECT 12, 'OS Memory'                        , (select total_physical_memory_kb / 1024 from sys.dm_os_sys_memory)
-    UNION SELECT 13, 'OS Available Memory'              , (select available_physical_memory_kb / 1024 from sys.dm_os_sys_memory)
+    UNION SELECT 12, 'OS Memory'                        , (select total_physical_memory_kb / 1024       from sys.dm_os_sys_memory)
+    UNION SELECT 13, 'OS Available Memory'              , (select available_physical_memory_kb / 1024   from sys.dm_os_sys_memory)
     UNION SELECT 14, 'OS Memory Status'                 , (select system_memory_state_desc from sys.dm_os_sys_memory)
     UNION SELECT 15, 'Max Server Memory(Megabytes)'     , (select CONVERT(char(10), [value_in_use]) from  master.sys.configurations where name = 'max server memory (MB)')
     UNION SELECT 16, 'Min Server Memory(Megabytes)'     , (select CONVERT(char(10), [value_in_use]) from  master.sys.configurations where name = 'min server memory (MB)')
@@ -183,7 +164,7 @@ FROM
     UNION SELECT 21, 'Node1 Name'                       , @NodeName1
     UNION SELECT 22, 'Node2 Name'                       , @NodeName2
     UNION SELECT 23, 'Kerberos'                         , @KERB
-    UNION SELECT 24, 'Security Mode'                    , @ISIntegratedSecurityOnly 
+    UNION SELECT 24, 'Security Mode'                    , @ISIntegratedSecurityOnly
     UNION SELECT 25, 'Audit Level'                      , @AuditLvltxt
     UNION SELECT 26, 'User Mode'                        , @ISSingleUser
     UNION SELECT 27, 'SQL Server Collation Type'        , (SELECT CONVERT(varchar(30), SERVERPROPERTY('COLLATION')))
@@ -207,7 +188,7 @@ PRINT CHAR(13) + CHAR(10) + '--##  Server Configuration'
 
 SELECT [name]                               AS 'Configuration Setting'
     , (CONVERT (CHAR(20),[value_in_use] ))  AS 'Value in Use'
-FROM master.sys.configurations--#SQL_Server_Settings
+FROM master.sys.configurations
 GO
 ------------------------------------------------------------------------
 PRINT CHAR(13) + CHAR(10) + '--##  Automatically executes on startup Code'
@@ -219,9 +200,8 @@ SELECT CONVERT (NVARCHAR(35), name) AS 'Name'
 FROM sys.procedures
 WHERE is_auto_executed = 1
 GO
-------------------------------------------------------------------------
-PRINT CHAR(13) + CHAR(10) + '--##  SQL Services Status' 
-
+-------------------------------------------------------------------------------
+--=================== 02. SQL Server all Services Information =================
 CREATE TABLE #RegResult (ResultValue NVARCHAR(4))
 
 CREATE TABLE #ServicesServiceStatus            
@@ -284,7 +264,7 @@ ELSE
     INSERT INTO #ServicesServiceStatus (ServiceStatus) VALUES ('NOT INSTALLED')
 
 UPDATE #ServicesServiceStatus
-set ServiceName = 'MS SQL Server Service'--, ServerName = @TrueSrvName, PhysicalServerName = @PhysicalSrvName
+set ServiceName = 'MS SQL Server Service'
 where RowID = @@identity    
 
 TRUNCATE TABLE #RegResult
@@ -300,7 +280,7 @@ ELSE
     INSERT INTO #ServicesServiceStatus (ServiceStatus) VALUES ('NOT INSTALLED')
 
 UPDATE #ServicesServiceStatus
-set ServiceName = 'SQL Server Agent Service'--, ServerName = @TrueSrvName, PhysicalServerName = @PhysicalSrvName
+set ServiceName = 'SQL Server Agent Service'
 where RowID = @@identity
 
 TRUNCATE TABLE #RegResult
@@ -316,7 +296,7 @@ ELSE
     INSERT INTO #ServicesServiceStatus (ServiceStatus) VALUES ('NOT INSTALLED')
 
 UPDATE #ServicesServiceStatus
-set ServiceName = 'SQL Browser Service - Instance Independent'--, ServerName = @TrueSrvName, PhysicalServerName = @PhysicalSrvName
+set ServiceName = 'SQL Browser Service - Instance Independent'
 where RowID = @@identity
 
 TRUNCATE TABLE #RegResult
@@ -350,7 +330,7 @@ ELSE
     INSERT INTO #ServicesServiceStatus (ServiceStatus) VALUES ('NOT INSTALLED')
 
 UPDATE #ServicesServiceStatus
-set ServiceName = 'Integration Service - Instance Independent'--, ServerName = @TrueSrvName, PhysicalServerName = @PhysicalSrvName
+set ServiceName = 'Integration Service - Instance Independent'
 where RowID = @@identity
 
 TRUNCATE TABLE #RegResult
@@ -365,7 +345,7 @@ ELSE
     INSERT INTO #ServicesServiceStatus (ServiceStatus) VALUES ('NOT INSTALLED')
 
 UPDATE #ServicesServiceStatus
-set ServiceName = 'Reporting Service'--, ServerName = @TrueSrvName, PhysicalServerName = @PhysicalSrvName
+set ServiceName = 'Reporting Service'
 where RowID = @@identity
 
 TRUNCATE TABLE #RegResult
@@ -389,7 +369,7 @@ ELSE
     INSERT INTO #ServicesServiceStatus (ServiceStatus) VALUES ('NOT INSTALLED')
 
 UPDATE #ServicesServiceStatus
-set ServiceName = 'Analysis Services'--, ServerName = @TrueSrvName, PhysicalServerName = @PhysicalSrvName
+set ServiceName = 'Analysis Services'
 where RowID = @@identity
 
 TRUNCATE TABLE #RegResult    
@@ -404,7 +384,7 @@ ELSE
     INSERT INTO #ServicesServiceStatus (ServiceStatus) VALUES ('NOT INSTALLED')
 
 UPDATE #ServicesServiceStatus
-set ServiceName = 'Full Text Search Service'--, ServerName = @TrueSrvName, PhysicalServerName = @PhysicalSrvName
+set ServiceName = 'Full Text Search Service'
 where RowID = @@identity
 
 TRUNCATE TABLE #RegResult
@@ -412,6 +392,8 @@ TRUNCATE TABLE #RegResult
 UPDATE #ServicesServiceStatus
 set ServerName = @TrueSrvName, PhysicalServerName = @PhysicalSrvName
 /* ---------------------------------- Total Service Section -----------------------------------------*/
+PRINT CHAR(13) + CHAR(10) + '--##  SQL Services Status' 
+
 SELECT ServerName as 'SQL Server\Instance Name'
     , ServiceName as 'Service Name'
     , ServiceStatus as 'Service Status'
@@ -446,8 +428,6 @@ SELECT
     , Max(D.recovery_model_desc)	AS 'Recovery Model'
 	, SUM(CASE WHEN F.type_desc ='ROWS' THEN CAST(F.size AS BIGINT) ELSE 0 END) * 8/ 1024	AS TotalDataDiskSpace_MB
 	, SUM(CASE WHEN F.type_desc ='LOG' THEN CAST(F.size AS BIGINT) ELSE 0 END) * 8 / 1024 	AS TotalLogDiskSpace_MB
-	--, ISNULL(STR(ABS(DATEDIFF(day, GetDate(), MAX(B.Backup_finish_date)))), 'NEVER')		    AS DaysSinceLastBackup
- --   , ISNULL(Convert(char(10), MAX(B.backup_finish_date), 101), 'NEVER')					    AS LastBackupDate
 FROM SYS.DATABASES D
     JOIN sys.master_files F					ON D.database_id= F.database_id
 	LEFT JOIN
@@ -687,8 +667,6 @@ GO
 ------------------------------------------------------------------------
 PRINT CHAR(13) + CHAR(10) + '--##  Linked Servers'
 
---SELECT * INTO #LinkInfo  FROM sys.servers WHERE is_linked ='1'
-
 SELECT 
     CONVERT(nvarchar(25), name) as 'Name'
   , CONVERT(nvarchar(25), product) as 'Product'
@@ -732,7 +710,6 @@ IF EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE='BASE TABLE'
         inner join syssubscriptions sub on (sub.artid = art.artid)
     )
 ELSE
-    --SELECT 'No Publication or Subcsription articles were found'
     SELECT  '' srvname,  '' name, '' name2, '' dest_table, '' dest_owner
     FROM SYS.objects
     WHERE 1 = 0
