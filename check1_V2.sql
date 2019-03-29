@@ -15,7 +15,7 @@ DECLARE
     , @INSTANCENAME NVARCHAR(100) 	-- SQL Server Instance Name
     , @VALUENAME NVARCHAR(20) 		-- Detect account used in SQL 2005, see notes below
     , @KERB NVARCHAR(50) 			-- Is Kerberos used or not
-    , @DomainName NVARCHAR(50) 		-- Name of Domain
+--    , @DomainName NVARCHAR(50) 		-- Name of Domain
     , @InstallDate datetime 		-- Installation date of SQL Server
     , @ProductVersion NVARCHAR(30) 	-- Production version
 --    , @ServerName NVARCHAR(30) 		-- SQL Server name
@@ -35,11 +35,10 @@ DECLARE
     , @AuditLevel int
     , @AuditLvltxt VARCHAR(50)
     , @ImagePath varchar(500)
-    , @SQLServerEnginePath varchar(500)
+--    , @SQLServerEnginePath varchar(500)
 
 SET @CurrentDate = CONVERT(varchar(100), GETDATE(), 120)
---SET @ServerName = (SELECT @@SERVERNAME)
----------------------------------------------------------------------
+
 --=================== 01. MS-SQL Server Information =================
 PRINT '--##  Report Date - Version 1.0'
 
@@ -71,7 +70,7 @@ IF @ProductVersion LIKE '13.0%'  SET @ProductVersion = 'SQL Server 2016'  -- for
 IF @ProductVersion LIKE '14.0%'  SET @ProductVersion = 'SQL Server 2017'  -- for future use
 
 ------------------------------------------------------------------------
-SET @DomainName = DEFAULT_DOMAIN()
+--SET @DomainName = DEFAULT_DOMAIN()
 ------------------------------------------------------------------------
 --For Service Account Name - This line will work on SQL 2008R2 and higher only
 --So the lines below are being used until SQL 2005 is removed/upgraded
@@ -121,7 +120,7 @@ SELECT @AuditLvltxt =
 ------------------------------------------------------------------------
 EXEC MASTER.dbo.xp_instance_regread N'HKEY_LOCAL_MACHINE', N'SYSTEM\CurrentControlSet\Services\MSSQLSERVER', N'ImagePath', @ImagePath OUTPUT
 
-SET @SQLServerEnginePath = REPLACE(SUBSTRING(@ImagePath, 2, CHARINDEX('"',  @ImagePath, 2) - 2), 'sqlservr.exe', '')
+--SET @SQLServerEnginePath = REPLACE(SUBSTRING(@ImagePath, 2, CHARINDEX('"',  @ImagePath, 2) - 2), 'sqlservr.exe', '')
 ------------------------------------------------------------------------
 IF (SELECT CONVERT(int, SERVERPROPERTY('ISSingleUser'))) = 1
     SET @ISSingleUser = 'Single User'
@@ -154,7 +153,7 @@ FROM
 
     UNION SELECT 17, 'Server IP Address'                , (SELECT TOP 1 Local_Net_Address FROM sys.dm_exec_connections WHERE net_transport = 'TCP' GROUP BY Local_Net_Address ORDER BY COUNT(*) DESC)
     UNION SELECT 18, 'Port Number'                      , (SELECT TOP 1 local_tcp_port FROM sys.dm_exec_connections WHERE net_transport = 'TCP' GROUP BY local_tcp_port ORDER BY COUNT(*) DESC)
-    UNION SELECT 19, 'Domain Name'                      , @DomainName
+    UNION SELECT 19, 'Domain Name'                      , DEFAULT_DOMAIN()
     UNION SELECT 20, 'Service Account name'             , @AccountName
     UNION SELECT 21, 'Node1 Name'                       , @NodeName1
     UNION SELECT 22, 'Node2 Name'                       , @NodeName2
@@ -163,7 +162,7 @@ FROM
     UNION SELECT 25, 'Audit Level'                      , @AuditLvltxt
     UNION SELECT 26, 'User Mode'                        , @ISSingleUser
     UNION SELECT 27, 'SQL Server Collation Type'        , (SELECT CONVERT(varchar(30), SERVERPROPERTY('COLLATION')))
-    UNION SELECT 28, 'SQL Server Engine Location'       , @SQLServerEnginePath
+    UNION SELECT 28, 'SQL Server Engine Location'       , REPLACE(SUBSTRING(@ImagePath, 2, CHARINDEX('"',  @ImagePath, 2) - 2), 'sqlservr.exe', '')
     UNION SELECT 29, 'SQL Server Errorlog Location'     , (SELECT REPLACE(CAST(SERVERPROPERTY('ErrorLogFileName') AS VARCHAR(500)), 'ERRORLOG',''))
     UNION SELECT 30, 'SQL Server Default Trace Location'    , (SELECT REPLACE(CONVERT(VARCHAR(100),SERVERPROPERTY('ErrorLogFileName')), '\ERRORLOG','\log.trc'))
     UNION SELECT 31, 'Number of Link Servers'               , (SELECT COUNT(*) FROM sys.servers WHERE is_linked ='1')
