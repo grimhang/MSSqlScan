@@ -29,8 +29,8 @@ DECLARE
     , @ISSingleUser NVARCHAR(20) 	-- System in Single User mode
     , @physical_CPU_Count VARCHAR(4) -- CPU count
     , @EnvironmentType VARCHAR(15) 	-- Physical or Virtual
-    , @MaxMemory NVARCHAR(10) 		-- Max memory
-    , @MinMemory NVARCHAR(10) 		-- Min memory
+--  , @MaxMemory NVARCHAR(10) 		-- Max memory
+--  , @MinMemory NVARCHAR(10) 		-- Min memory
     , @TotalMEMORYinBytes NVARCHAR(10) -- Total memory
 --    , @ErrorLogLocation VARCHAR(500) 	-- location of error logs
     , @TraceFileLocation VARCHAR(100) 	-- location of trace files
@@ -86,8 +86,8 @@ IF @ProductVersion LIKE '14.0%'  SET @ProductVersion = 'SQL Server 2017'  -- for
 
 --SET @MaxMemory = (select CONVERT(char(10), [value_in_use]) from  #SQL_Server_Settings where name = 'max server memory (MB)')
 --SET @MinMemory = (select CONVERT(char(10), [value_in_use]) from  #SQL_Server_Settings where name = 'min server memory (MB)')
-SET @MaxMemory = (select CONVERT(char(10), [value_in_use]) from  master.sys.configurations where name = 'max server memory (MB)')
-SET @MinMemory = (select CONVERT(char(10), [value_in_use]) from  master.sys.configurations where name = 'min server memory (MB)')
+-- SET @MaxMemory = (select CONVERT(char(10), [value_in_use]) from  master.sys.configurations where name = 'max server memory (MB)')
+-- SET @MinMemory = (select CONVERT(char(10), [value_in_use]) from  master.sys.configurations where name = 'min server memory (MB)')
 ------------------------------------------------------------------------
 SET @DomainName = DEFAULT_DOMAIN()
 ------------------------------------------------------------------------
@@ -162,28 +162,35 @@ FROM
     UNION SELECT 4, 'Machine Name'                      , (SELECT CONVERT(char(100), SERVERPROPERTY('MachineName'))) --@MachineName
     UNION SELECT 5, 'Instance Name'                     , @InstanceName
     UNION SELECT 6, 'Install Date'                      , CONVERT(varchar(200), @InstallDate, 120)
+    
     UNION SELECT 7, 'Production Name'                   , @ProductVersion
     UNION SELECT 8, 'SQL Server Edition and Bit Level'  , @EDITION
     UNION SELECT 9, 'SQL Server Bit Level'              , CASE WHEN CHARINDEX('64-bit', @@VERSION) > 0 THEN '64bit' else '32bit' end
     UNION SELECT 10, 'SQL Server Service Pack'          , @ProductLevel    
+
     UNION SELECT 11, 'Logical CPU Count'                , @physical_CPU_Count
-    UNION SELECT 12, 'Max Server Memory(Megabytes)'     , @MaxMemory
-    UNION SELECT 13, 'Min Server Memory(Megabytes)'     , @MinMemory
-    UNION SELECT 14, 'Server IP Address'                , (SELECT TOP 1 Local_Net_Address FROM sys.dm_exec_connections WHERE net_transport = 'TCP' GROUP BY Local_Net_Address ORDER BY COUNT(*) DESC)
-    UNION SELECT 15, 'Port Number'                      , (SELECT TOP 1 local_tcp_port FROM sys.dm_exec_connections WHERE net_transport = 'TCP' GROUP BY local_tcp_port ORDER BY COUNT(*) DESC)
-    UNION SELECT 16, 'Domain Name'                      , @DomainName
-    UNION SELECT 17, 'Service Account name'             , @AccountName
-    UNION SELECT 18, 'Node1 Name'                       , @NodeName1
-    UNION SELECT 19, 'Node2 Name'                       , @NodeName2
-    UNION SELECT 20, 'Kerberos'                         , @KERB
-    UNION SELECT 21, 'Security Mode'                    , @ISIntegratedSecurityOnly 
-    UNION SELECT 22, 'Audit Level'                      , @AuditLvltxt
-    UNION SELECT 23, 'User Mode'                        , @ISSingleUser
-    UNION SELECT 24, 'SQL Server Collation Type'        , (SELECT CONVERT(varchar(30), SERVERPROPERTY('COLLATION')))
-    UNION SELECT 25, 'SQL Server Engine Location'       , @SQLServerEnginePath
-    UNION SELECT 26, 'SQL Server Errorlog Location'     , (SELECT REPLACE(CAST(SERVERPROPERTY('ErrorLogFileName') AS VARCHAR(500)), 'ERRORLOG',''))
-    UNION SELECT 27, 'SQL Server Default Trace Location'    , (SELECT REPLACE(CONVERT(VARCHAR(100),SERVERPROPERTY('ErrorLogFileName')), '\ERRORLOG','\log.trc'))
-    UNION SELECT 28, 'Number of Link Servers'               , (SELECT COUNT(*) FROM sys.servers WHERE is_linked ='1')
+    
+    UNION SELECT 12, 'OS Memory'                        , (select total_physical_memory_kb / 1024 from sys.dm_os_sys_memory)
+    UNION SELECT 13, 'OS Available Memory'              , (select available_physical_memory_kb / 1024 from sys.dm_os_sys_memory)
+    UNION SELECT 14, 'OS Memory Status'                 , (select system_memory_state_desc from sys.dm_os_sys_memory)
+    UNION SELECT 15, 'Max Server Memory(Megabytes)'     , (select CONVERT(char(10), [value_in_use]) from  master.sys.configurations where name = 'max server memory (MB)')
+    UNION SELECT 16, 'Min Server Memory(Megabytes)'     , (select CONVERT(char(10), [value_in_use]) from  master.sys.configurations where name = 'min server memory (MB)')
+
+    UNION SELECT 17, 'Server IP Address'                , (SELECT TOP 1 Local_Net_Address FROM sys.dm_exec_connections WHERE net_transport = 'TCP' GROUP BY Local_Net_Address ORDER BY COUNT(*) DESC)
+    UNION SELECT 18, 'Port Number'                      , (SELECT TOP 1 local_tcp_port FROM sys.dm_exec_connections WHERE net_transport = 'TCP' GROUP BY local_tcp_port ORDER BY COUNT(*) DESC)
+    UNION SELECT 19, 'Domain Name'                      , @DomainName
+    UNION SELECT 20, 'Service Account name'             , @AccountName
+    UNION SELECT 21, 'Node1 Name'                       , @NodeName1
+    UNION SELECT 22, 'Node2 Name'                       , @NodeName2
+    UNION SELECT 23, 'Kerberos'                         , @KERB
+    UNION SELECT 24, 'Security Mode'                    , @ISIntegratedSecurityOnly 
+    UNION SELECT 25, 'Audit Level'                      , @AuditLvltxt
+    UNION SELECT 26, 'User Mode'                        , @ISSingleUser
+    UNION SELECT 27, 'SQL Server Collation Type'        , (SELECT CONVERT(varchar(30), SERVERPROPERTY('COLLATION')))
+    UNION SELECT 28, 'SQL Server Engine Location'       , @SQLServerEnginePath
+    UNION SELECT 29, 'SQL Server Errorlog Location'     , (SELECT REPLACE(CAST(SERVERPROPERTY('ErrorLogFileName') AS VARCHAR(500)), 'ERRORLOG',''))
+    UNION SELECT 30, 'SQL Server Default Trace Location'    , (SELECT REPLACE(CONVERT(VARCHAR(100),SERVERPROPERTY('ErrorLogFileName')), '\ERRORLOG','\log.trc'))
+    UNION SELECT 31, 'Number of Link Servers'               , (SELECT COUNT(*) FROM sys.servers WHERE is_linked ='1')
 ) temp
 ORDER BY ValSeq
 ------------------------------------------------------------------------
@@ -276,7 +283,6 @@ IF (SELECT ResultValue FROM #RegResult) = 1
 ELSE 
     INSERT INTO #ServicesServiceStatus (ServiceStatus) VALUES ('NOT INSTALLED')
 
--- 위의 if문 안에 별도로 있던 update문과 truncate문을 여기로 이동
 UPDATE #ServicesServiceStatus
 set ServiceName = 'MS SQL Server Service'--, ServerName = @TrueSrvName, PhysicalServerName = @PhysicalSrvName
 where RowID = @@identity    
@@ -450,7 +456,7 @@ FROM SYS.DATABASES D
 		FROM msdb.dbo.backupset
 		WHERE 1=1
 			--DATABASE_NAME ='TL_REPORT'
-			AND type = 'D'	-- 데이터백업만
+			AND type = 'D'	-- Data backup only
 		GROUP BY database_name
 	) B			ON B.database_name = D.name 
 --WHERE D.name NOT IN ('master', 'model', 'tempdb')
