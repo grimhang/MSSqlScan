@@ -90,9 +90,6 @@ ELSE
 
 ------------------------------------------------------------------------
 --cluster node names. Modify if there are more than 2 nodes in cluster
--- SELECT NodeName
--- INTO #nodes
--- FROM sys.dm_os_cluster_nodes 
 
 IF @@rowcount = 0 
     SET @NodeName1 = 'NONE' -- NONE for no cluster
@@ -214,7 +211,7 @@ CREATE TABLE #ServicesServiceStatus
     ,PhysicalServerName NVARCHAR(50)
 )
 
-DECLARE 
+DECLARE
     @ChkInstanceName nvarchar(128)
     ,@ChkSrvName nvarchar(128)
     ,@TrueSrvName nvarchar(128)
@@ -832,8 +829,8 @@ GO
 ------------------------------------------------------------------------
 -- Performing clean up
 --DROP TABLE #nodes;
-DROP TABLE #ServicesServiceStatus;    
-DROP TABLE #RegResult;    
+DROP TABLE #ServicesServiceStatus;   
+DROP TABLE #RegResult;
 DROP TABLE #HD_space;
 DROP TABLE #Database_Mail_Details;
 DROP TABLE #Database_Mail_Details2;
