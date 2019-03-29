@@ -301,6 +301,7 @@ BEGIN
     -- TRUNCATE TABLE #RegResult
 END
 
+-- 위의 if문 안에 별도로 있던 update문과 truncate문을 여기로 이동
 UPDATE #ServicesServiceStatus
 set ServiceName = 'MS SQL Server Service', ServerName = @TrueSrvName, PhysicalSrverName = @PhysicalSrvName
 where RowID = @@identity    
@@ -317,22 +318,36 @@ BEGIN
     INSERT #ServicesServiceStatus (ServiceStatus)        
     EXEC xp_servicecontrol N'QUERYSTATE',@SQLAgent
 
-    UPDATE #ServicesServiceStatus set ServiceName = 'SQL Server Agent Service' where RowID = @@identity
-    UPDATE #ServicesServiceStatus set ServerName = @TrueSrvName where RowID = @@identity
-    UPDATE #ServicesServiceStatus set PhysicalSrverName = @PhysicalSrvName where RowID = @@identity
+    -- UPDATE #ServicesServiceStatus set ServiceName = 'SQL Server Agent Service' where RowID = @@identity
+    -- UPDATE #ServicesServiceStatus set ServerName = @TrueSrvName where RowID = @@identity
+    -- UPDATE #ServicesServiceStatus set PhysicalSrverName = @PhysicalSrvName where RowID = @@identity
 
-    TRUNCATE TABLE #RegResult
+    -- UPDATE #ServicesServiceStatus
+    -- set ServiceName = 'SQL Server Agent Service', ServerName = @TrueSrvName, PhysicalSrverName = @PhysicalSrvName
+    -- where RowID = @@identity
+
+    -- TRUNCATE TABLE #RegResult
 END
 ELSE 
 BEGIN
     INSERT INTO #ServicesServiceStatus (ServiceStatus) VALUES ('NOT INSTALLED')
 
-    UPDATE #ServicesServiceStatus set ServiceName = 'SQL Server Agent Service' where RowID = @@identity
-    UPDATE #ServicesServiceStatus set ServerName = @TrueSrvName where RowID = @@identity    
-    UPDATE #ServicesServiceStatus set PhysicalSrverName = @PhysicalSrvName where RowID = @@identity
+    -- UPDATE #ServicesServiceStatus set ServiceName = 'SQL Server Agent Service' where RowID = @@identity
+    -- UPDATE #ServicesServiceStatus set ServerName = @TrueSrvName where RowID = @@identity    
+    -- UPDATE #ServicesServiceStatus set PhysicalSrverName = @PhysicalSrvName where RowID = @@identity
 
-    TRUNCATE TABLE #RegResult
+    -- UPDATE #ServicesServiceStatus
+    -- set ServiceName = 'SQL Server Agent Service', ServerName = @TrueSrvName, PhysicalSrverName = @PhysicalSrvName
+    -- where RowID = @@identity
+
+    -- TRUNCATE TABLE #RegResult
 END
+
+UPDATE #ServicesServiceStatus
+set ServiceName = 'SQL Server Agent Service', ServerName = @TrueSrvName, PhysicalSrverName = @PhysicalSrvName
+where RowID = @@identity
+
+TRUNCATE TABLE #RegResult
 
 /* ---------------------------------- SQL Browser Service Section ----------------------------------------------*/
 SET @REGKEY = 'System\CurrentControlSet\Services\SQLBrowser'
@@ -344,23 +359,28 @@ BEGIN
     INSERT #ServicesServiceStatus (ServiceStatus)        
     EXEC master.dbo.xp_servicecontrol N'QUERYSTATE',N'sqlbrowser'
 
-    UPDATE #ServicesServiceStatus set ServiceName = 'SQL Browser Service - Instance Independent' where RowID = @@identity
-    UPDATE #ServicesServiceStatus set ServerName = @TrueSrvName where RowID = @@identity
-    UPDATE #ServicesServiceStatus set PhysicalSrverName = @PhysicalSrvName where RowID = @@identity
+    -- UPDATE #ServicesServiceStatus set ServiceName = 'SQL Browser Service - Instance Independent' where RowID = @@identity
+    -- UPDATE #ServicesServiceStatus set ServerName = @TrueSrvName where RowID = @@identity
+    -- UPDATE #ServicesServiceStatus set PhysicalSrverName = @PhysicalSrvName where RowID = @@identity
 
-    TRUNCATE TABLE #RegResult
+    -- TRUNCATE TABLE #RegResult
 END
 ELSE 
 BEGIN
     INSERT INTO #ServicesServiceStatus (ServiceStatus) VALUES ('NOT INSTALLED')
 
-    UPDATE #ServicesServiceStatus set ServiceName = 'SQL Browser Service - Instance Independent' where RowID = @@identity
-    UPDATE #ServicesServiceStatus set ServerName = @TrueSrvName where RowID = @@identity
-    UPDATE #ServicesServiceStatus set PhysicalSrverName = @PhysicalSrvName where RowID = @@identity
+    -- UPDATE #ServicesServiceStatus set ServiceName = 'SQL Browser Service - Instance Independent' where RowID = @@identity
+    -- UPDATE #ServicesServiceStatus set ServerName = @TrueSrvName where RowID = @@identity
+    -- UPDATE #ServicesServiceStatus set PhysicalSrverName = @PhysicalSrvName where RowID = @@identity
 
-    TRUNCATE TABLE #RegResult
+    -- TRUNCATE TABLE #RegResult
 END
 
+UPDATE #ServicesServiceStatus
+set ServiceName = 'SQL Browser Service - Instance Independent', ServerName = @TrueSrvName, PhysicalSrverName = @PhysicalSrvName
+where RowID = @@identity
+
+TRUNCATE TABLE #RegResult
 /* ---------------------------------- Integration Service Section ----------------------------------------------*/
 DECLARE @ProductVersionTemp NVARCHAR(50)
     , @integrationServiceIns NVARCHAR(100)
@@ -389,23 +409,29 @@ IF (SELECT ResultValue FROM #RegResult) = 1
 BEGIN
     INSERT #ServicesServiceStatus (ServiceStatus)
     EXEC master.dbo.xp_servicecontrol N'QUERYSTATE', @integrationServiceIns
-    UPDATE #ServicesServiceStatus set ServiceName = 'Integration Service - Instance Independent' where RowID = @@identity
-    UPDATE #ServicesServiceStatus set ServerName = @TrueSrvName where RowID = @@identity
-    UPDATE #ServicesServiceStatus set PhysicalSrverName = @PhysicalSrvName where RowID = @@identity
+
+    -- UPDATE #ServicesServiceStatus set ServiceName = 'Integration Service - Instance Independent' where RowID = @@identity
+    -- UPDATE #ServicesServiceStatus set ServerName = @TrueSrvName where RowID = @@identity
+    -- UPDATE #ServicesServiceStatus set PhysicalSrverName = @PhysicalSrvName where RowID = @@identity
     
-    TRUNCATE TABLE #RegResult
+    -- TRUNCATE TABLE #RegResult
 END
 ELSE 
 BEGIN
     INSERT INTO #ServicesServiceStatus (ServiceStatus) VALUES ('NOT INSTALLED')
 
-    UPDATE #ServicesServiceStatus set ServiceName = 'Intergration Service - Instance Independent' where RowID = @@identity
-    UPDATE #ServicesServiceStatus set ServerName = @TrueSrvName where RowID = @@identity
-    UPDATE #ServicesServiceStatus set PhysicalSrverName = @PhysicalSrvName where RowID = @@identity
+    -- UPDATE #ServicesServiceStatus set ServiceName = 'Intergration Service - Instance Independent' where RowID = @@identity
+    -- UPDATE #ServicesServiceStatus set ServerName = @TrueSrvName where RowID = @@identity
+    -- UPDATE #ServicesServiceStatus set PhysicalSrverName = @PhysicalSrvName where RowID = @@identity
 
-    TRUNCATE TABLE #RegResult
+    -- TRUNCATE TABLE #RegResult
 END
 
+UPDATE #ServicesServiceStatus
+set ServiceName = 'Integration Service - Instance Independent', ServerName = @TrueSrvName, PhysicalSrverName = @PhysicalSrvName
+where RowID = @@identity
+
+TRUNCATE TABLE #RegResult
 /* ---------------------------------- Reporting Service Section ------------------------------------------------*/
 SET @REGKEY = 'System\CurrentControlSet\Services\' + @RS
 
@@ -416,22 +442,28 @@ BEGIN
     INSERT #ServicesServiceStatus (ServiceStatus)        
     EXEC master.dbo.xp_servicecontrol N'QUERYSTATE',@RS
 
-    UPDATE #ServicesServiceStatus set ServiceName = 'Reporting Service' where RowID = @@identity
-    UPDATE #ServicesServiceStatus set ServerName = @TrueSrvName where RowID = @@identity
-    UPDATE #ServicesServiceStatus set PhysicalSrverName = @PhysicalSrvName where RowID = @@identity
+    -- UPDATE #ServicesServiceStatus set ServiceName = 'Reporting Service' where RowID = @@identity
+    -- UPDATE #ServicesServiceStatus set ServerName = @TrueSrvName where RowID = @@identity
+    -- UPDATE #ServicesServiceStatus set PhysicalSrverName = @PhysicalSrvName where RowID = @@identity
 
-    TRUNCATE TABLE #RegResult
+    -- TRUNCATE TABLE #RegResult
 END
 ELSE 
 BEGIN
     INSERT INTO #ServicesServiceStatus (ServiceStatus) VALUES ('NOT INSTALLED')
 
-    UPDATE #ServicesServiceStatus set ServiceName = 'Reporting Service' where RowID = @@identity
-    UPDATE #ServicesServiceStatus set ServerName = @TrueSrvName where RowID = @@identity
-    UPDATE #ServicesServiceStatus set PhysicalSrverName = @PhysicalSrvName where RowID = @@identity
+    -- UPDATE #ServicesServiceStatus set ServiceName = 'Reporting Service' where RowID = @@identity
+    -- UPDATE #ServicesServiceStatus set ServerName = @TrueSrvName where RowID = @@identity
+    -- UPDATE #ServicesServiceStatus set PhysicalSrverName = @PhysicalSrvName where RowID = @@identity
 
-    TRUNCATE TABLE #RegResult
+    -- TRUNCATE TABLE #RegResult
 END
+
+UPDATE #ServicesServiceStatus
+set ServiceName = 'Reporting Service', ServerName = @TrueSrvName, PhysicalSrverName = @PhysicalSrvName
+where RowID = @@identity
+
+TRUNCATE TABLE #RegResult
 
 /* ---------------------------------- Analysis Service Section -------------------------------------------------*/
 IF @ChkSrvName IS NULL                                
@@ -451,23 +483,28 @@ BEGIN
     INSERT #ServicesServiceStatus (ServiceStatus)        
     EXEC master.dbo.xp_servicecontrol N'QUERYSTATE', @OLAP
 
-    UPDATE #ServicesServiceStatus set ServiceName = 'Analysis Services' where RowID = @@identity
-    UPDATE #ServicesServiceStatus set ServerName = @TrueSrvName where RowID = @@identity
-    UPDATE #ServicesServiceStatus set PhysicalSrverName = @PhysicalSrvName where RowID = @@identity
+    -- UPDATE #ServicesServiceStatus set ServiceName = 'Analysis Services' where RowID = @@identity
+    -- UPDATE #ServicesServiceStatus set ServerName = @TrueSrvName where RowID = @@identity
+    -- UPDATE #ServicesServiceStatus set PhysicalSrverName = @PhysicalSrvName where RowID = @@identity
 
-    TRUNCATE TABLE #RegResult
+    -- TRUNCATE TABLE #RegResult
 END
 ELSE 
 BEGIN
     INSERT INTO #ServicesServiceStatus (ServiceStatus) VALUES ('NOT INSTALLED')
 
-    UPDATE #ServicesServiceStatus set ServiceName = 'Analysis Services' where RowID = @@identity
-    UPDATE #ServicesServiceStatus set ServerName = @TrueSrvName where RowID = @@identity
-    UPDATE #ServicesServiceStatus set PhysicalSrverName = @PhysicalSrvName where RowID = @@identity
+    -- UPDATE #ServicesServiceStatus set ServiceName = 'Analysis Services' where RowID = @@identity
+    -- UPDATE #ServicesServiceStatus set ServerName = @TrueSrvName where RowID = @@identity
+    -- UPDATE #ServicesServiceStatus set PhysicalSrverName = @PhysicalSrvName where RowID = @@identity
 
-    TRUNCATE TABLE #RegResult
+    -- TRUNCATE TABLE #RegResult
 END
 
+UPDATE #ServicesServiceStatus
+set ServiceName = 'Analysis Services', ServerName = @TrueSrvName, PhysicalSrverName = @PhysicalSrvName
+where RowID = @@identity
+
+TRUNCATE TABLE #RegResult    
 /* ---------------------------------- Full Text Search Service Section -----------------------------------------*/
 SET @REGKEY = 'System\CurrentControlSet\Services\' + @FTS
 
@@ -478,23 +515,29 @@ BEGIN
     INSERT #ServicesServiceStatus (ServiceStatus)        
     EXEC master.dbo.xp_servicecontrol N'QUERYSTATE',@FTS
 
-    UPDATE #ServicesServiceStatus set ServiceName = 'Full Text Search Service' where RowID = @@identity
-    UPDATE #ServicesServiceStatus set ServerName = @TrueSrvName where RowID = @@identity
-    UPDATE #ServicesServiceStatus set PhysicalSrverName = @PhysicalSrvName where RowID = @@identity
+    -- UPDATE #ServicesServiceStatus set ServiceName = 'Full Text Search Service' where RowID = @@identity
+    -- UPDATE #ServicesServiceStatus set ServerName = @TrueSrvName where RowID = @@identity
+    -- UPDATE #ServicesServiceStatus set PhysicalSrverName = @PhysicalSrvName where RowID = @@identity
 
-    TRUNCATE TABLE #RegResult
+    -- TRUNCATE TABLE #RegResult
 END
 ELSE 
 BEGIN
     INSERT INTO #ServicesServiceStatus (ServiceStatus) VALUES ('NOT INSTALLED')
 
-    UPDATE #ServicesServiceStatus set ServiceName = 'Full Text Search Service' where RowID = @@identity
-    UPDATE #ServicesServiceStatus set ServerName = @TrueSrvName where RowID = @@identity
-    UPDATE #ServicesServiceStatus set PhysicalSrverName = @PhysicalSrvName where RowID = @@identity
+    -- UPDATE #ServicesServiceStatus set ServiceName = 'Full Text Search Service' where RowID = @@identity
+    -- UPDATE #ServicesServiceStatus set ServerName = @TrueSrvName where RowID = @@identity
+    -- UPDATE #ServicesServiceStatus set PhysicalSrverName = @PhysicalSrvName where RowID = @@identity
 
-    TRUNCATE TABLE #RegResult
+    -- TRUNCATE TABLE #RegResult
 END
 
+UPDATE #ServicesServiceStatus
+set ServiceName = 'Full Text Search Service', ServerName = @TrueSrvName, PhysicalSrverName = @PhysicalSrvName
+where RowID = @@identity
+
+TRUNCATE TABLE #RegResult
+/* ---------------------------------- Total Service Section -----------------------------------------*/
 SELECT ServerName as 'SQL Server\Instance Name'
     , ServiceName as 'Service Name'
     , ServiceStatus as 'Service Status'
