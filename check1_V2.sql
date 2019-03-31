@@ -700,12 +700,12 @@ DROP TABLE #HD_space;
     PRINT CHAR(13) + CHAR(10) + '--##  Linked Servers Logins'
 
     SELECT s.server_id ,s.name 
-        , 'Server ' = Case s.Server_id   when 0 then 'Current Server'   else 'Remote Server'   end
+        , CASE s.Server_id   WHEN 0 THEN 'Current Server'   ELSE 'Remote Server' END			AS 'Server'
         , s.data_source, s.product , s.provider  , s.catalog  
-        , 'Local Login ' = case sl.uses_self_credential   when 1 then 'Uses Self Credentials' else ssp.name end
-        , 'Remote Login Name' = sl.remote_name 
-        , 'RPC Out Enabled'    = case s.is_rpc_out_enabled when 1 then 'True' else 'False' end 
-        , 'Data Access Enabled' = case s.is_data_access_enabled when 1 then 'True' else 'False' end
+        , CASE sl.uses_self_credential   WHEN 1 THEN 'Uses Self Credentials' ELSE ssp.name END	AS 'Local Login'
+        , sl.remote_name AS 'Remote Login Name'
+        , CASE s.is_rpc_out_enabled WHEN 1 THEN 'True' ELSE 'False' END							AS 'RPC Out Enabled'
+        , CASE s.is_data_access_enabled WHEN 1 THEN 'True' ELSE 'False' END						AS 'Data Access Enabled'
         , s.modify_date
     FROM sys.Servers s
         LEFT JOIN sys.linked_logins sl ON s.server_id = sl.server_id
