@@ -1,11 +1,8 @@
-/* SQL Server Configuration Report  
+﻿/* SQL Server Configuration Report  
 2018-01-18     Ver1 초기완성 버전
 2018-02-18     Ver2 개선 버전
 -------------------------------------------------------------------------*/
 SET NOCOUNT ON;
-
-use master
-go
 
 DECLARE
       @CurrentDate NVARCHAR(50) 	-- Current data/time
@@ -40,7 +37,7 @@ DECLARE
 SET @CurrentDate = CONVERT(varchar(100), GETDATE(), 120)
 
 --=================== 01. MS-SQL Server Information =================
-PRINT '--##  Report Date - Version 1.0'
+PRINT '--##  Report Date'   -- Ver 2.0
 
 SELECT @@SERVERNAME "Server Name", @CurrentDate "Report Date"
 
