@@ -65,9 +65,8 @@ IF @ProductVersion LIKE '11.0%'  SET @ProductVersion = 'SQL Server 2012'
 IF @ProductVersion LIKE '12.0%'  SET @ProductVersion = 'SQL Server 2014' 
 IF @ProductVersion LIKE '13.0%'  SET @ProductVersion = 'SQL Server 2016'  -- for future use
 IF @ProductVersion LIKE '14.0%'  SET @ProductVersion = 'SQL Server 2017'  -- for future use
+IF @ProductVersion LIKE '15.0%'  SET @ProductVersion = 'SQL Server 2019'  -- for future use
 
-------------------------------------------------------------------------
---SET @DomainName = DEFAULT_DOMAIN()
 ------------------------------------------------------------------------
 --For Service Account Name - This line will work on SQL 2008R2 and higher only
 --So the lines below are being used until SQL 2005 is removed/upgraded
