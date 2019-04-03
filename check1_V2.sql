@@ -524,12 +524,15 @@ DROP TABLE #HD_space;
     FROM 
     (
         SELECT DB.name DBName,
-            CASE
-                WHEN MIRROR.mirroring_state is NULL THEN 'Database Mirroring not configured and/or set'
-                ELSE 'Mirroring is configured and/or set'
-            END AS MirroringState
+            -- CASE
+            --     WHEN MIRROR.mirroring_state is NULL THEN 'Database Mirroring not configured and/or set'
+            --     ELSE 'Mirroring is configured and/or set'
+            -- END AS MirroringState
+            'Mirroring is dnabled'  AS MirroringState
         FROM sys.databases DB
-        JOIN sys.database_mirroring MIRROR      ON DB.database_id=MIRROR.database_id WHERE DB.database_id > 4 
+        JOIN sys.database_mirroring MIRROR      ON DB.database_id = MIRROR.database_id
+        WHERE DB.database_id > 4 
+            and MIRROR.mirroring_state is not null
     ) T
     ORDER BY DBName;
 
