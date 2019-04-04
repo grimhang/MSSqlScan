@@ -56,29 +56,20 @@ SET @InstanceName = CASE
 --SET @physical_CPU_Count = (SELECT cpu_count FROM sys.dm_os_sys_info)
 SET @ProductVersion     = CONVERT(varchar(30), SERVERPROPERTY('ProductVersion'))
 
--- IF @ProductVersion LIKE '6.5%'   SET @ProductVersion = 'SQL Server 6.5'
--- IF @ProductVersion LIKE '7.0%'   SET @ProductVersion = 'SQL Server 7'
--- IF @ProductVersion LIKE '8.0%'   SET @ProductVersion = 'SQL Server 2000'
--- IF @ProductVersion LIKE '9.0%'   SET @ProductVersion = 'SQL Server 2005'  
--- IF @ProductVersion LIKE '10.0%'  SET @ProductVersion = 'SQL Server 2008' 
--- IF @ProductVersion LIKE '10.50%' SET @ProductVersion = 'SQL Server 2008R2' 
--- IF @ProductVersion LIKE '11.0%'  SET @ProductVersion = 'SQL Server 2012' 
--- IF @ProductVersion LIKE '12.0%'  SET @ProductVersion = 'SQL Server 2014' 
--- IF @ProductVersion LIKE '13.0%'  SET @ProductVersion = 'SQL Server 2016'  -- for future use
--- IF @ProductVersion LIKE '14.0%'  SET @ProductVersion = 'SQL Server 2017'  -- for future use
--- IF @ProductVersion LIKE '15.0%'  SET @ProductVersion = 'SQL Server 2019'  -- for future use
+SET @ProductVersionDesc = CASE
+                                WHEN @ProductVersion LIKE '6.5%'   THEN 'SQL Server 6.5'
+                                WHEN @ProductVersion LIKE '7.0%'   THEN 'SQL Server 7'
+                                WHEN @ProductVersion LIKE '8.0%'   THEN 'SQL Server 2000'
+                                WHEN @ProductVersion LIKE '9.0%'   THEN 'SQL Server 2005'  
+                                WHEN @ProductVersion LIKE '10.0%'  THEN 'SQL Server 2008' 
+                                WHEN @ProductVersion LIKE '10.50%' THEN 'SQL Server 2008R2' 
+                                WHEN @ProductVersion LIKE '11.0%'  THEN 'SQL Server 2012' 
+                                WHEN @ProductVersion LIKE '12.0%'  THEN 'SQL Server 2014' 
+                                WHEN @ProductVersion LIKE '13.0%'  THEN 'SQL Server 2016'
+                                WHEN @ProductVersion LIKE '14.0%'  THEN 'SQL Server 2017'
+                                WHEN @ProductVersion LIKE '15.0%'  THEN 'SQL Server 2019'  -- for future use  
+                        END
 
-IF @ProductVersion LIKE '6.5%'   SET @ProductVersionDesc = 'SQL Server 6.5'
-IF @ProductVersion LIKE '7.0%'   SET @ProductVersionDesc = 'SQL Server 7'
-IF @ProductVersion LIKE '8.0%'   SET @ProductVersionDesc = 'SQL Server 2000'
-IF @ProductVersion LIKE '9.0%'   SET @ProductVersionDesc = 'SQL Server 2005'  
-IF @ProductVersion LIKE '10.0%'  SET @ProductVersionDesc = 'SQL Server 2008' 
-IF @ProductVersion LIKE '10.50%' SET @ProductVersionDesc = 'SQL Server 2008R2' 
-IF @ProductVersion LIKE '11.0%'  SET @ProductVersionDesc = 'SQL Server 2012' 
-IF @ProductVersion LIKE '12.0%'  SET @ProductVersionDesc = 'SQL Server 2014' 
-IF @ProductVersion LIKE '13.0%'  SET @ProductVersionDesc = 'SQL Server 2016'
-IF @ProductVersion LIKE '14.0%'  SET @ProductVersionDesc = 'SQL Server 2017'
-IF @ProductVersion LIKE '15.0%'  SET @ProductVersionDesc = 'SQL Server 2019'  -- for future use
 ------------------------------------------------------------------------
 --For Service Account Name - This line will work on SQL 2008R2 and higher only
 --So the lines below are being used until SQL 2005 is removed/upgraded
