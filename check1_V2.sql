@@ -17,12 +17,12 @@ DECLARE
     , @ProductVersion NVARCHAR(30) 	-- Production version
 --    , @ServerName NVARCHAR(30) 		-- SQL Server name
     , @Instance NVARCHAR(30) 		--  Instance name
-    , @EDITION NVARCHAR(30) 		--SQL Server Edition
-    , @ProductLevel NVARCHAR(20) 	-- Product level
+--    , @EDITION NVARCHAR(30) 		--SQL Server Edition
+--    , @ProductLevel NVARCHAR(20) 	-- Product level
     , @ISClustered NVARCHAR(20) 	-- System clustered
     , @ISIntegratedSecurityOnly NVARCHAR(50) -- Security level
     , @ISSingleUser NVARCHAR(20) 	-- System in Single User mode
-    , @physical_CPU_Count VARCHAR(4) -- CPU count
+--    , @physical_CPU_Count VARCHAR(4) -- CPU count
     , @EnvironmentType VARCHAR(15) 	-- Physical or Virtual
 --  , @MaxMemory NVARCHAR(10) 		-- Max memory
 --  , @MinMemory NVARCHAR(10) 		-- Min memory
@@ -50,9 +50,9 @@ SET @InstanceName = CASE
                         ELSE CONVERT(varchar(50), SERVERPROPERTY('InstanceName'))
                     END
 
-SET @EDITION            = CONVERT(varchar(30), SERVERPROPERTY('EDITION'))
-SET @ProductLevel       = CONVERT(varchar(30), SERVERPROPERTY('ProductLevel'))
-SET @physical_CPU_Count = (SELECT cpu_count FROM sys.dm_os_sys_info)
+--SET @EDITION            = CONVERT(varchar(30), SERVERPROPERTY('EDITION'))
+--SET @ProductLevel       = CONVERT(varchar(30), SERVERPROPERTY('ProductLevel'))
+--SET @physical_CPU_Count = (SELECT cpu_count FROM sys.dm_os_sys_info)
 SET @ProductVersion     = CONVERT(varchar(30), SERVERPROPERTY('ProductVersion'))
 
 IF @ProductVersion LIKE '6.5%'   SET @ProductVersion = 'SQL Server 6.5'
@@ -135,11 +135,11 @@ FROM
     UNION SELECT 6, 'Install Date'                      , CONVERT(varchar(200), @InstallDate, 120)
     
     UNION SELECT 7, 'Production Name'                   , @ProductVersion
-    UNION SELECT 8, 'SQL Server Edition and Bit Level'  , @EDITION
+    UNION SELECT 8, 'SQL Server Edition and Bit Level'  , CONVERT(varchar(30), SERVERPROPERTY('EDITION'))
     UNION SELECT 9, 'SQL Server Bit Level'              , CASE WHEN CHARINDEX('64-bit', @@VERSION) > 0 THEN '64bit' else '32bit' end
-    UNION SELECT 10, 'SQL Server Service Pack'          , @ProductLevel    
+    UNION SELECT 10, 'SQL Server Service Pack'          , CONVERT(varchar(30), SERVERPROPERTY('ProductLevel'))    
 
-    UNION SELECT 11, 'Logical CPU Count'                , @physical_CPU_Count
+    UNION SELECT 11, 'Logical CPU Count'                , (SELECT cpu_count FROM sys.dm_os_sys_info)
     
     UNION SELECT 12, 'OS Memory'                        , (select total_physical_memory_kb / 1024       from sys.dm_os_sys_memory)
     UNION SELECT 13, 'OS Available Memory'              , (select available_physical_memory_kb / 1024   from sys.dm_os_sys_memory)
