@@ -377,7 +377,7 @@ END
     set ServerName = @TrueSrvName, PhysicalServerName = @PhysicalSrvName
     
     ----- 02.9 Total Service Section ----------------------
-    PRINT CHAR(13) + CHAR(10) + '--##  SQL Services Status' 
+    PRINT CHAR(13) + CHAR(10) + '--##  SQL Server All Services' 
 
     SELECT ServerName as 'SQL Server\Instance Name'
         , ServiceName as 'Service Name'
@@ -408,7 +408,7 @@ GO
 DROP TABLE #HD_space;
 --=================== 04. Database Information =================
     ----- 04.1 Database Section ---------------------
-    PRINT CHAR(13) + CHAR(10) + '--##  Database'
+    PRINT CHAR(13) + CHAR(10) + '--##  Databases'
 
     SELECT 
         D.database_id 'Database ID'
@@ -438,7 +438,7 @@ DROP TABLE #HD_space;
     GO
 
     ----- 04.2 Database File Section ---------------------
-    PRINT CHAR(13) + CHAR(10) + '--##  Database File'
+    PRINT CHAR(13) + CHAR(10) + '--##  Database Files'
 
     SELECT 
         D.name AS 'DBName'
@@ -477,7 +477,7 @@ DROP TABLE #HD_space;
     GO
 
     ----- 04.4 Database Mail Service Section --------------
-    PRINT CHAR(13) + CHAR(10) + '--##  Database Mail Service Status'
+    PRINT CHAR(13) + CHAR(10) + '--##  Database Mail Service'
 
     CREATE TABLE #Database_Mail_Details2
         (principal_id VARCHAR(4)
@@ -505,7 +505,7 @@ DROP TABLE #HD_space;
     DROP TABLE #Database_Mail_Details2;
 
     ----- 04.5 Database Mirroring Service Section ---------
-    PRINT CHAR(13) + CHAR(10) + '--##  Database Mirroring Status'
+    PRINT CHAR(13) + CHAR(10) + '--##  Database Mirroring'
 
     SELECT CONVERT(nvarchar(35),DBName)   AS 'Database Name'
         , MirroringState                 AS 'Mirroring State'
@@ -563,7 +563,7 @@ DROP TABLE #HD_space;
     WHERE mirroring_role is not null;
 
     ----- 04.7 Database Log Shipping Section --------------
-    PRINT CHAR(13) + CHAR(10) + '--##  Database Log Shipping Status'
+    PRINT CHAR(13) + CHAR(10) + '--##  Database Log Shipping'
 
     IF (CONVERT(VARchar(30), SERVERPROPERTY('EDITION')) LIKE 'Express%')
     BEGIN
@@ -615,7 +615,7 @@ DROP TABLE #HD_space;
 
 --=================== 05. SQL Job Information =================
     ----- 05.1 SQL Job Section --------------
-    PRINT CHAR(13) + CHAR(10) + '--##  SQL Job'
+    PRINT CHAR(13) + CHAR(10) + '--##  SQL Jobs'
 
     SELECT name JobName
         , CASE enabled WHEN 0 THEN 'N' ELSE 'Y' END EnableYN
@@ -624,7 +624,7 @@ DROP TABLE #HD_space;
     ORDER BY name
 
     ----- 05.2 SQL Job Step Section --------------
-    PRINT CHAR(13) + CHAR(10) + '--##  SQL Job Step'
+    PRINT CHAR(13) + CHAR(10) + '--##  SQL Job Steps'
 
     SELECT 
         j.[job_id] AS [JobID]
