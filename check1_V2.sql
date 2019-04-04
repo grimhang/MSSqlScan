@@ -12,28 +12,19 @@ DECLARE
     , @INSTANCENAME NVARCHAR(100) 	-- SQL Server Instance Name
     , @VALUENAME NVARCHAR(20) 		-- Detect account used in SQL 2005, see notes below
     , @KERB NVARCHAR(50) 			-- Is Kerberos used or not
---    , @DomainName NVARCHAR(50) 		-- Name of Domain
     , @InstallDate datetime 		-- Installation date of SQL Server
     , @ProductVersion NVARCHAR(30) 	-- Production version
     , @ProductVersionDesc NVARCHAR(100) 	-- Production version Detail Description
---    , @ServerName NVARCHAR(30) 		-- SQL Server name
     , @Instance NVARCHAR(30) 		--  Instance name
---    , @EDITION NVARCHAR(30) 		--SQL Server Edition
---    , @ProductLevel NVARCHAR(20) 	-- Product level
     , @ISClustered NVARCHAR(20) 	-- System clustered
     , @ISIntegratedSecurityOnly NVARCHAR(50) -- Security level
     , @ISSingleUser NVARCHAR(20) 	-- System in Single User mode
---    , @physical_CPU_Count VARCHAR(4) -- CPU count
     , @EnvironmentType VARCHAR(15) 	-- Physical or Virtual
---  , @MaxMemory NVARCHAR(10) 		-- Max memory
---  , @MinMemory NVARCHAR(10) 		-- Min memory
     , @TotalMEMORYinBytes NVARCHAR(10) -- Total memory
---    , @ErrorLogLocation VARCHAR(500) 	-- location of error logs
     , @TraceFileLocation VARCHAR(100) 	-- location of trace files
     , @AuditLevel int
     , @AuditLvltxt VARCHAR(50)
     , @ImagePath varchar(500)
---    , @SQLServerEnginePath varchar(500)
 
 SET @CurrentDate = CONVERT(varchar(100), GETDATE(), 120)
 
@@ -51,12 +42,9 @@ SET @InstanceName = CASE
                         ELSE CONVERT(varchar(50), SERVERPROPERTY('InstanceName'))
                     END
 
---SET @EDITION            = CONVERT(varchar(30), SERVERPROPERTY('EDITION'))
---SET @ProductLevel       = CONVERT(varchar(30), SERVERPROPERTY('ProductLevel'))
---SET @physical_CPU_Count = (SELECT cpu_count FROM sys.dm_os_sys_info)
 SET @ProductVersion     = CONVERT(varchar(30), SERVERPROPERTY('ProductVersion'))
 
-SET @ProductVersionDesc = CASE
+SET @ProductVersionDesc =   CASE
                                 WHEN @ProductVersion LIKE '6.5%'   THEN 'SQL Server 6.5'
                                 WHEN @ProductVersion LIKE '7.0%'   THEN 'SQL Server 7'
                                 WHEN @ProductVersion LIKE '8.0%'   THEN 'SQL Server 2000'
@@ -68,7 +56,7 @@ SET @ProductVersionDesc = CASE
                                 WHEN @ProductVersion LIKE '13.0%'  THEN 'SQL Server 2016'
                                 WHEN @ProductVersion LIKE '14.0%'  THEN 'SQL Server 2017'
                                 WHEN @ProductVersion LIKE '15.0%'  THEN 'SQL Server 2019'  -- for future use  
-                        END
+                            END
 
 ------------------------------------------------------------------------
 --For Service Account Name - This line will work on SQL 2008R2 and higher only
@@ -119,7 +107,6 @@ SELECT @AuditLvltxt =
 ------------------------------------------------------------------------
 EXEC MASTER.dbo.xp_instance_regread N'HKEY_LOCAL_MACHINE', N'SYSTEM\CurrentControlSet\Services\MSSQLSERVER', N'ImagePath', @ImagePath OUTPUT
 
---SET @SQLServerEnginePath = REPLACE(SUBSTRING(@ImagePath, 2, CHARINDEX('"',  @ImagePath, 2) - 2), 'sqlservr.exe', '')
 ------------------------------------------------------------------------
 IF (SELECT CONVERT(int, SERVERPROPERTY('ISSingleUser'))) = 1
     SET @ISSingleUser = 'Single User'
@@ -296,11 +283,9 @@ END
     TRUNCATE TABLE #RegResult
 
     ----- 02.4 Integration Service Section ----------------
-    --DECLARE @ProductVersionTemp NVARCHAR(50)
     DECLARE @integrationServiceIns NVARCHAR(100)
 
-    --SET @ProductVersionTemp     = CONVERT(varchar(30), SERVERPROPERTY('ProductVersion'))
-    set @integrationServiceIns = 'MsDtsServer' + 
+    SET @integrationServiceIns = 'MsDtsServer' + 
                                                 CASE
                                                     WHEN @ProductVersion LIKE '6.5%'   THEN ''
                                                     WHEN @ProductVersion LIKE '7.0%'   THEN ''
