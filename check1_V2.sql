@@ -15,6 +15,7 @@ DECLARE
 --    , @DomainName NVARCHAR(50) 		-- Name of Domain
     , @InstallDate datetime 		-- Installation date of SQL Server
     , @ProductVersion NVARCHAR(30) 	-- Production version
+    , @ProductVersionDesc NVARCHAR(100) 	-- Production version Detail Description
 --    , @ServerName NVARCHAR(30) 		-- SQL Server name
     , @Instance NVARCHAR(30) 		--  Instance name
 --    , @EDITION NVARCHAR(30) 		--SQL Server Edition
@@ -55,18 +56,29 @@ SET @InstanceName = CASE
 --SET @physical_CPU_Count = (SELECT cpu_count FROM sys.dm_os_sys_info)
 SET @ProductVersion     = CONVERT(varchar(30), SERVERPROPERTY('ProductVersion'))
 
-IF @ProductVersion LIKE '6.5%'   SET @ProductVersion = 'SQL Server 6.5'
-IF @ProductVersion LIKE '7.0%'   SET @ProductVersion = 'SQL Server 7'
-IF @ProductVersion LIKE '8.0%'   SET @ProductVersion = 'SQL Server 2000'
-IF @ProductVersion LIKE '9.0%'   SET @ProductVersion = 'SQL Server 2005'  
-IF @ProductVersion LIKE '10.0%'  SET @ProductVersion = 'SQL Server 2008' 
-IF @ProductVersion LIKE '10.50%' SET @ProductVersion = 'SQL Server 2008R2' 
-IF @ProductVersion LIKE '11.0%'  SET @ProductVersion = 'SQL Server 2012' 
-IF @ProductVersion LIKE '12.0%'  SET @ProductVersion = 'SQL Server 2014' 
-IF @ProductVersion LIKE '13.0%'  SET @ProductVersion = 'SQL Server 2016'  -- for future use
-IF @ProductVersion LIKE '14.0%'  SET @ProductVersion = 'SQL Server 2017'  -- for future use
-IF @ProductVersion LIKE '15.0%'  SET @ProductVersion = 'SQL Server 2019'  -- for future use
+-- IF @ProductVersion LIKE '6.5%'   SET @ProductVersion = 'SQL Server 6.5'
+-- IF @ProductVersion LIKE '7.0%'   SET @ProductVersion = 'SQL Server 7'
+-- IF @ProductVersion LIKE '8.0%'   SET @ProductVersion = 'SQL Server 2000'
+-- IF @ProductVersion LIKE '9.0%'   SET @ProductVersion = 'SQL Server 2005'  
+-- IF @ProductVersion LIKE '10.0%'  SET @ProductVersion = 'SQL Server 2008' 
+-- IF @ProductVersion LIKE '10.50%' SET @ProductVersion = 'SQL Server 2008R2' 
+-- IF @ProductVersion LIKE '11.0%'  SET @ProductVersion = 'SQL Server 2012' 
+-- IF @ProductVersion LIKE '12.0%'  SET @ProductVersion = 'SQL Server 2014' 
+-- IF @ProductVersion LIKE '13.0%'  SET @ProductVersion = 'SQL Server 2016'  -- for future use
+-- IF @ProductVersion LIKE '14.0%'  SET @ProductVersion = 'SQL Server 2017'  -- for future use
+-- IF @ProductVersion LIKE '15.0%'  SET @ProductVersion = 'SQL Server 2019'  -- for future use
 
+IF @ProductVersion LIKE '6.5%'   SET @ProductVersionDesc = 'SQL Server 6.5'
+IF @ProductVersion LIKE '7.0%'   SET @ProductVersionDesc = 'SQL Server 7'
+IF @ProductVersion LIKE '8.0%'   SET @ProductVersionDesc = 'SQL Server 2000'
+IF @ProductVersion LIKE '9.0%'   SET @ProductVersionDesc = 'SQL Server 2005'  
+IF @ProductVersion LIKE '10.0%'  SET @ProductVersionDesc = 'SQL Server 2008' 
+IF @ProductVersion LIKE '10.50%' SET @ProductVersionDesc = 'SQL Server 2008R2' 
+IF @ProductVersion LIKE '11.0%'  SET @ProductVersionDesc = 'SQL Server 2012' 
+IF @ProductVersion LIKE '12.0%'  SET @ProductVersionDesc = 'SQL Server 2014' 
+IF @ProductVersion LIKE '13.0%'  SET @ProductVersionDesc = 'SQL Server 2016'
+IF @ProductVersion LIKE '14.0%'  SET @ProductVersionDesc = 'SQL Server 2017'
+IF @ProductVersion LIKE '15.0%'  SET @ProductVersionDesc = 'SQL Server 2019'  -- for future use
 ------------------------------------------------------------------------
 --For Service Account Name - This line will work on SQL 2008R2 and higher only
 --So the lines below are being used until SQL 2005 is removed/upgraded
@@ -134,7 +146,7 @@ FROM
     UNION SELECT 5, 'Instance Name'                     , @InstanceName
     UNION SELECT 6, 'Install Date'                      , CONVERT(varchar(200), @InstallDate, 120)
     
-    UNION SELECT 7, 'Production Name'                   , @ProductVersion
+    UNION SELECT 7, 'Production Name'                   , @ProductVersionDesc
     UNION SELECT 8, 'SQL Server Edition and Bit Level'  , CONVERT(varchar(30), SERVERPROPERTY('EDITION'))
     UNION SELECT 9, 'SQL Server Bit Level'              , CASE WHEN CHARINDEX('64-bit', @@VERSION) > 0 THEN '64bit' else '32bit' end
     UNION SELECT 10, 'SQL Server Service Pack'          , CONVERT(varchar(30), SERVERPROPERTY('ProductLevel'))    
@@ -179,7 +191,7 @@ PRINT CHAR(13) + CHAR(10) + '--##  Server Configuration'
 SELECT [name]                               AS 'Configuration Setting'
     , (CONVERT (CHAR(20),[value_in_use] ))  AS 'Value in Use'
 FROM master.sys.configurations
-GO
+
 ------------------------------------------------------------------------
 PRINT CHAR(13) + CHAR(10) + '--##  Automatically executes on startup Code'
 
@@ -189,7 +201,7 @@ SELECT CONVERT (NVARCHAR(35), name) AS 'Name'
     ,  modify_date AS 'Modified Date'
 FROM sys.procedures
 WHERE is_auto_executed = 1
-GO
+
 -------------------------------------------------------------------------------
 --=================== 02. SQL Server all Services Information =================
 CREATE TABLE #RegResult (ResultValue NVARCHAR(4))
@@ -293,22 +305,23 @@ END
     TRUNCATE TABLE #RegResult
 
     ----- 02.4 Integration Service Section ----------------
-    DECLARE @ProductVersionTemp NVARCHAR(50)
-        , @integrationServiceIns NVARCHAR(100)
+    --DECLARE @ProductVersionTemp NVARCHAR(50)
+    DECLARE @integrationServiceIns NVARCHAR(100)
 
-    SET @ProductVersionTemp     = CONVERT(varchar(30), SERVERPROPERTY('ProductVersion'))
+    --SET @ProductVersionTemp     = CONVERT(varchar(30), SERVERPROPERTY('ProductVersion'))
     set @integrationServiceIns = 'MsDtsServer' + 
                                                 CASE
-                                                    WHEN @ProductVersionTemp LIKE '6.5%'   THEN ''
-                                                    WHEN @ProductVersionTemp LIKE '7.0%'   THEN ''
-                                                    WHEN @ProductVersionTemp LIKE '8.0%'   THEN ''
-                                                    WHEN @ProductVersionTemp LIKE '9.0%'   THEN ''      -- 2005
-                                                    WHEN @ProductVersionTemp LIKE '10.%'  THEN '100'   -- 2008
+                                                    WHEN @ProductVersion LIKE '6.5%'   THEN ''
+                                                    WHEN @ProductVersion LIKE '7.0%'   THEN ''
+                                                    WHEN @ProductVersion LIKE '8.0%'   THEN ''
+                                                    WHEN @ProductVersion LIKE '9.0%'   THEN ''      -- 2005
+                                                    WHEN @ProductVersion LIKE '10.%'  THEN '100'   -- 2008
                                                     --WHEN @ProductVersionTemp LIKE '10.50%' THEN '105'   -- 2008 R2
-                                                    WHEN @ProductVersionTemp LIKE '11.0%'  THEN '110'   -- 2012
-                                                    WHEN @ProductVersionTemp LIKE '12.0%'  THEN '120'   -- 2014
-                                                    WHEN @ProductVersionTemp LIKE '13.0%'  THEN '130'   -- 2016
-                                                    WHEN @ProductVersionTemp LIKE '14.0%'  THEN '140'   -- 2017
+                                                    WHEN @ProductVersion LIKE '11.0%'  THEN '110'   -- 2012
+                                                    WHEN @ProductVersion LIKE '12.0%'  THEN '120'   -- 2014
+                                                    WHEN @ProductVersion LIKE '13.0%'  THEN '130'   -- 2016
+                                                    WHEN @ProductVersion LIKE '14.0%'  THEN '140'   -- 2017
+                                                    WHEN @ProductVersion LIKE '15.0%'  THEN '140'   -- 2019
                                                     ELSE ''
                                                 END
 
