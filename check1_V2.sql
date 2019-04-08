@@ -11,7 +11,7 @@ DECLARE
     , @AccountName NVARCHAR(50) 	-- Account name used
     , @INSTANCENAME NVARCHAR(100) 	-- SQL Server Instance Name
     , @VALUENAME NVARCHAR(20) 		-- Detect account used in SQL 2005, see notes below
-    , @KERB NVARCHAR(50) 			-- Is Kerberos used or not
+    --, @KERB NVARCHAR(50) 			-- Is Kerberos used or not
     , @InstallDate datetime 		-- Installation date of SQL Server
     , @ProductVersion NVARCHAR(30) 	-- Production version
     , @ProductVersionDesc NVARCHAR(100) 	-- Production version Detail Description
@@ -83,10 +83,10 @@ BEGIN
     SET @NodeName2 = (SELECT TOP 1 NodeName from sys.dm_os_cluster_nodes  where NodeName > @NodeName1)
 END
 ------------------------------------------------------------------------
-IF (SELECT count(*) FROM sys.dm_exec_connections WHERE session_id = @@spid) > 0
-    SET @KERB = 'Kerberos not used in TCP network transport'
-ELSE
-    SET @KERB = 'TCP is using Kerberos'
+-- IF (SELECT count(*) FROM sys.dm_exec_connections WHERE session_id = @@spid) > 0
+--     SET @KERB = 'Kerberos not used in TCP network transport'
+-- ELSE
+--     SET @KERB = 'TCP is using Kerberos'
 
 ------------------------------------------------------------------------
 IF (SELECT CONVERT(int, SERVERPROPERTY('ISIntegratedSecurityOnly'))) = 1
@@ -143,7 +143,11 @@ FROM
     UNION SELECT 20, 'Service Account name'             , @AccountName
     UNION SELECT 21, 'Node1 Name'                       , @NodeName1
     UNION SELECT 22, 'Node2 Name'                       , @NodeName2
-    UNION SELECT 23, 'Kerberos'                         , @KERB
+    --UNION SELECT 23, 'Kerberos'                         , @KERB
+    -- UNION SELECT 23, 'Kerberos'                         , (CASE
+    --                                                         WHEN (SELECT count(*) FROM sys.dm_exec_connections WHERE session_id = @@spid) > 0 THEN 'Kerberos not used in TCP network transport'
+    --                                                         ELSE 'TCP is using Kerberos'
+    --                                                     END)  이 조사쿼리의 kerberos 연결정보를 구하는 것이니 삭제
     UNION SELECT 24, 'Security Mode'                    , @ISIntegratedSecurityOnly
     UNION SELECT 25, 'Audit Level'                      , @AuditLvltxt
     UNION SELECT 26, 'User Mode'                        , @ISSingleUser
@@ -187,25 +191,25 @@ CREATE TABLE #RegResult (ResultValue NVARCHAR(4))
 CREATE TABLE #ServicesServiceStatus            
 ( 
      RowID INT IDENTITY(1,1)
-    ,ServerName NVARCHAR(30) 
-    ,ServiceName NVARCHAR(45)
-    ,ServiceStatus varchar(15)
-    ,StatusDateTime DATETIME DEFAULT (GETDATE())
-    ,PhysicalServerName NVARCHAR(50)
+    , ServerName NVARCHAR(30) 
+    , ServiceName NVARCHAR(45)
+    , ServiceStatus varchar(15)
+    , StatusDateTime DATETIME DEFAULT (GETDATE())
+    , PhysicalServerName NVARCHAR(50)
 )
 
 DECLARE
     @ChkInstanceName nvarchar(128)
-    ,@ChkSrvName nvarchar(128)
-    ,@TrueSrvName nvarchar(128)
-    ,@SQLSrv NVARCHAR(128)
-    ,@PhysicalSrvName NVARCHAR(128)
-    ,@FTS nvarchar(128)
-    ,@RS nvarchar(128)
-    ,@SQLAgent NVARCHAR(128)
-    ,@OLAP nvarchar(128)
-    ,@REGKEY NVARCHAR(128)
-
+    , @ChkSrvName nvarchar(128)
+    , @TrueSrvName nvarchar(128)
+    , @SQLSrv NVARCHAR(128)
+    , @PhysicalSrvName NVARCHAR(128)
+    , @FTS nvarchar(128)
+    , @RS nvarchar(128)
+    , @SQLAgent NVARCHAR(128)
+    , @OLAP nvarchar(128)
+    , @REGKEY NVARCHAR(128)
+ 
 SET @PhysicalSrvName = CAST(SERVERPROPERTY('MachineName') AS VARCHAR(128)) 
 SET @ChkSrvName = CAST(SERVERPROPERTY('INSTANCENAME') AS VARCHAR(128)) 
 SET @ChkInstanceName = @@ServerName
@@ -760,11 +764,11 @@ DROP TABLE #HD_space;
             END AS 'Catalog Type'
             ,CONVERT(nvarchar(35),Cat.Description) AS'Description'
         FROM reportserver.dbo.Catalog Cat 
-            INNER JOIN reportserver.dbo.Policies Pol        ON Cat.PolicyID = Pol.PolicyID
-            INNER JOIN reportserver.dbo.PolicyUserRole PUR  ON Pol.PolicyID = PUR.PolicyID 
-            INNER JOIN reportserver.dbo.Users Us            ON PUR.UserID = Us.UserID 
-            INNER JOIN reportserver.dbo.Roles Rol           ON PUR.RoleID = Rol.RoleID
-        WHERE Cat.Type in (1,2)
+            JOIN reportserver.dbo.Policies Pol        ON Cat.PolicyID = Pol.PolicyID
+            JOIN reportserver.dbo.PolicyUserRole PUR  ON Pol.PolicyID = PUR.PolicyID 
+            JOIN reportserver.dbo.Users Us            ON PUR.UserID = Us.UserID 
+            JOIN reportserver.dbo.Roles Rol           ON PUR.RoleID = Rol.RoleID
+        WHERE Cat.Type in (1, 2)
         ORDER BY Cat.PATH 
     END
     ELSE
