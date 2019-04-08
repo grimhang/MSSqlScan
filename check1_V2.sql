@@ -9,7 +9,7 @@ DECLARE
     , @NodeName1 NVARCHAR(50) 		-- Name of node 1 if clustered
     , @NodeName2 NVARCHAR(50) 		-- Name of node 2 if clustered
     , @AccountName NVARCHAR(50) 	-- Account name used
-    , @INSTANCENAME NVARCHAR(100) 	-- SQL Server Instance Name
+    --, @INSTANCENAME NVARCHAR(100) 	-- SQL Server Instance Name
     , @VALUENAME NVARCHAR(20) 		-- Detect account used in SQL 2005, see notes below
     --, @KERB NVARCHAR(50) 			-- Is Kerberos used or not
     , @InstallDate datetime 		-- Installation date of SQL Server
@@ -37,10 +37,10 @@ SELECT @@SERVERNAME "Server Name", @CurrentDate "Report Date"
 PRINT CHAR(13) + CHAR(10) + '--##  Summary'
 
 SET @InstallDate = (SELECT  createdate FROM sys.syslogins where sid = 0x010100000000000512000000)
-SET @InstanceName = CASE
-						WHEN  SERVERPROPERTY('InstanceName') IS NULL THEN 'Default Instance'
-                        ELSE CONVERT(varchar(50), SERVERPROPERTY('InstanceName'))
-                    END
+-- SET @InstanceName = CASE
+-- 						WHEN  SERVERPROPERTY('InstanceName') IS NULL THEN 'Default Instance'
+--                         ELSE CONVERT(varchar(50), SERVERPROPERTY('InstanceName'))
+--                     END
 
 SET @ProductVersion     = CONVERT(varchar(30), SERVERPROPERTY('ProductVersion'))
 
@@ -121,7 +121,10 @@ FROM
     UNION SELECT 2, 'SQLServerName\InstanceName'        , @@ServerName -- @SQLServerName
     UNION SELECT 3, 'Active Node'                       , SERVERPROPERTY('ComputerNamePhysicalNetBIOS')
     UNION SELECT 4, 'Machine Name'                      , (SELECT CONVERT(char(100), SERVERPROPERTY('MachineName'))) --@MachineName
-    UNION SELECT 5, 'Instance Name'                     , @InstanceName
+    UNION SELECT 5, 'Instance Name'                     , CASE
+                                                            WHEN  SERVERPROPERTY('InstanceName') IS NULL THEN 'Default Instance'
+                                                            ELSE CONVERT(varchar(50), SERVERPROPERTY('InstanceName'))
+                                                        END
     UNION SELECT 6, 'Install Date'                      , CONVERT(varchar(200), @InstallDate, 120)
     
     UNION SELECT 7, 'Production Name'                   , @ProductVersionDesc
