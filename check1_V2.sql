@@ -16,7 +16,7 @@ DECLARE
     , @ProductVersion NVARCHAR(30) 	-- Production version
     , @ProductVersionDesc NVARCHAR(100) 	-- Production version Detail Description
     , @Instance NVARCHAR(30) 		--  Instance name
-    , @ISClustered NVARCHAR(20) 	-- System clustered
+    --, @ISClustered NVARCHAR(20) 	-- System clustered
     , @ISIntegratedSecurityOnly NVARCHAR(50) -- Security level
     --, @ISSingleUser NVARCHAR(20) 	-- System in Single User mode
     , @EnvironmentType VARCHAR(15) 	-- Physical or Virtual
@@ -67,10 +67,10 @@ EXECUTE  master.dbo.xp_instance_regread
         @value_name   = N'ObjectName',
         @value        = @AccountName OUTPUT
 ------------------------------------------------------------------------
-IF (SELECT CONVERT(char(30), SERVERPROPERTY('ISClustered'))) = 1
-    SET @ISClustered = 'Clustered'
-ELSE
-    SET @ISClustered = 'Not Clustered'
+-- IF (SELECT CONVERT(char(30), SERVERPROPERTY('ISClustered'))) = 1
+--     SET @ISClustered = 'Clustered'
+-- ELSE
+--     SET @ISClustered = 'Not Clustered'
 
 ------------------------------------------------------------------------
 --cluster node names. Modify if there are more than 2 nodes in cluster
@@ -117,7 +117,9 @@ EXEC MASTER.dbo.xp_instance_regread N'HKEY_LOCAL_MACHINE', N'SYSTEM\CurrentContr
 SELECT KeyName, KeyVal
 FROM
 (
-    SELECT 1 ValSeq, 'Clustered Status' as keyname      , @ISClustered KeyVal
+    SELECT 1 ValSeq, 'Clustered Status' as keyname      , CASE WHEN CONVERT(char(30), SERVERPROPERTY('ISClustered')) = 1 THEN 'Clustered'
+                                                                ELSE
+                                                                'Not Clustered' END          KeyVal
     UNION SELECT 2, 'SQLServerName\InstanceName'        , @@ServerName -- @SQLServerName
     UNION SELECT 3, 'Active Node'                       , SERVERPROPERTY('ComputerNamePhysicalNetBIOS')
     UNION SELECT 4, 'Machine Name'                      , (SELECT CONVERT(char(100), SERVERPROPERTY('MachineName'))) --@MachineName
@@ -150,7 +152,7 @@ FROM
     -- UNION SELECT 23, 'Kerberos'                         , (CASE
     --                                                         WHEN (SELECT count(*) FROM sys.dm_exec_connections WHERE session_id = @@spid) > 0 THEN 'Kerberos not used in TCP network transport'
     --                                                         ELSE 'TCP is using Kerberos'
-    --                                                     END)  이 조사쿼리의 kerberos 연결정보를 구하는 것이니 삭제
+    --                                                     END)  이 클라이언트의 kerberos 연결정보를 구하는 것이니 삭제
     UNION SELECT 24, 'Security Mode'                    , @ISIntegratedSecurityOnly
     UNION SELECT 25, 'Audit Level'                      , @AuditLvltxt
     UNION SELECT 26, 'User Mode'                        , CASE WHEN CONVERT(int, SERVERPROPERTY('ISSingleUser')) = 1 THEN 'Single User' ELSE 'Multi User' END
