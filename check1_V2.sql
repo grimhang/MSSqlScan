@@ -108,12 +108,6 @@ SELECT @AuditLvltxt =
 EXEC MASTER.dbo.xp_instance_regread N'HKEY_LOCAL_MACHINE', N'SYSTEM\CurrentControlSet\Services\MSSQLSERVER', N'ImagePath', @ImagePath OUTPUT
 
 ------------------------------------------------------------------------
--- IF (SELECT CONVERT(int, SERVERPROPERTY('ISSingleUser'))) = 1
---     SET @ISSingleUser = 'Single User'
--- ELSE
---     SET @ISSingleUser = 'Multi User'
-
-------------------------------------------------------------------------
 SELECT KeyName, KeyVal
 FROM
 (
