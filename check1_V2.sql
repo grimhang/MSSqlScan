@@ -18,7 +18,7 @@ DECLARE
     , @Instance NVARCHAR(30) 		--  Instance name
     , @ISClustered NVARCHAR(20) 	-- System clustered
     , @ISIntegratedSecurityOnly NVARCHAR(50) -- Security level
-    , @ISSingleUser NVARCHAR(20) 	-- System in Single User mode
+    --, @ISSingleUser NVARCHAR(20) 	-- System in Single User mode
     , @EnvironmentType VARCHAR(15) 	-- Physical or Virtual
     , @TotalMEMORYinBytes NVARCHAR(10) -- Total memory
     , @TraceFileLocation VARCHAR(100) 	-- location of trace files
@@ -36,14 +36,14 @@ SELECT @@SERVERNAME "Server Name", @CurrentDate "Report Date"
 ----------------------------------------------------------------
 PRINT CHAR(13) + CHAR(10) + '--##  Summary'
 
-SET @InstallDate = (SELECT  createdate FROM sys.syslogins where sid = 0x010100000000000512000000)
+--SET @InstallDate = (SELECT  createdate FROM sys.syslogins where sid = 0x010100000000000512000000)       -- NT AUTHORITY\SYSTEM의 생성일
+SET @InstallDate = (SELECT  createdate FROM sys.syslogins where name = 'NT AUTHORITY\SYSTEM')       -- NT AUTHORITY\SYSTEM의 생성일
 -- SET @InstanceName = CASE
 -- 						WHEN  SERVERPROPERTY('InstanceName') IS NULL THEN 'Default Instance'
 --                         ELSE CONVERT(varchar(50), SERVERPROPERTY('InstanceName'))
 --                     END
 
 SET @ProductVersion     = CONVERT(varchar(30), SERVERPROPERTY('ProductVersion'))
-
 SET @ProductVersionDesc =   CASE
                                 WHEN @ProductVersion LIKE '6.5%'   THEN 'SQL Server 6.5'
                                 WHEN @ProductVersion LIKE '7.0%'   THEN 'SQL Server 7'
@@ -108,10 +108,10 @@ SELECT @AuditLvltxt =
 EXEC MASTER.dbo.xp_instance_regread N'HKEY_LOCAL_MACHINE', N'SYSTEM\CurrentControlSet\Services\MSSQLSERVER', N'ImagePath', @ImagePath OUTPUT
 
 ------------------------------------------------------------------------
-IF (SELECT CONVERT(int, SERVERPROPERTY('ISSingleUser'))) = 1
-    SET @ISSingleUser = 'Single User'
-ELSE
-    SET @ISSingleUser = 'Multi User'
+-- IF (SELECT CONVERT(int, SERVERPROPERTY('ISSingleUser'))) = 1
+--     SET @ISSingleUser = 'Single User'
+-- ELSE
+--     SET @ISSingleUser = 'Multi User'
 
 ------------------------------------------------------------------------
 SELECT KeyName, KeyVal
@@ -153,11 +153,11 @@ FROM
     --                                                     END)  이 조사쿼리의 kerberos 연결정보를 구하는 것이니 삭제
     UNION SELECT 24, 'Security Mode'                    , @ISIntegratedSecurityOnly
     UNION SELECT 25, 'Audit Level'                      , @AuditLvltxt
-    UNION SELECT 26, 'User Mode'                        , @ISSingleUser
-    UNION SELECT 27, 'SQL Server Collation Type'        , (SELECT CONVERT(varchar(30), SERVERPROPERTY('COLLATION')))
+    UNION SELECT 26, 'User Mode'                        , CASE WHEN CONVERT(int, SERVERPROPERTY('ISSingleUser')) = 1 THEN 'Single User' ELSE 'Multi User' END
+    UNION SELECT 27, 'SQL Server Collation Type'        , CONVERT(varchar(30), SERVERPROPERTY('COLLATION'))
     UNION SELECT 28, 'SQL Server Engine Location'       , REPLACE(SUBSTRING(@ImagePath, 2, CHARINDEX('"',  @ImagePath, 2) - 2), 'sqlservr.exe', '')
-    UNION SELECT 29, 'SQL Server Errorlog Location'     , (SELECT REPLACE(CAST(SERVERPROPERTY('ErrorLogFileName') AS VARCHAR(500)), 'ERRORLOG',''))
-    UNION SELECT 30, 'SQL Server Default Trace Location'    , (SELECT REPLACE(CONVERT(VARCHAR(100),SERVERPROPERTY('ErrorLogFileName')), '\ERRORLOG','\log.trc'))
+    UNION SELECT 29, 'SQL Server Errorlog Location'     , REPLACE(CAST(SERVERPROPERTY('ErrorLogFileName') AS VARCHAR(500)), 'ERRORLOG','')
+    UNION SELECT 30, 'SQL Server Default Trace Location'    , REPLACE(CONVERT(VARCHAR(100), SERVERPROPERTY('ErrorLogFileName')), '\ERRORLOG','\log.trc')
     UNION SELECT 31, 'Number of Link Servers'               , (SELECT COUNT(*) FROM sys.servers WHERE is_linked ='1')
 ) temp
 ORDER BY ValSeq
