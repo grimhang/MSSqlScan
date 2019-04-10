@@ -5,23 +5,19 @@
 SET NOCOUNT ON;
 
 DECLARE
-      @CurrentDate NVARCHAR(50) 	-- Current data/time
-    , @NodeName1 NVARCHAR(50) 		-- Name of node 1 if clustered
-    , @NodeName2 NVARCHAR(50) 		-- Name of node 2 if clustered
-    , @AccountName NVARCHAR(50) 	-- Account name used
-    --, @INSTANCENAME NVARCHAR(100) 	-- SQL Server Instance Name
-    , @VALUENAME NVARCHAR(20) 		-- Detect account used in SQL 2005, see notes below
-    --, @KERB NVARCHAR(50) 			-- Is Kerberos used or not
-    , @InstallDate datetime 		-- Installation date of SQL Server
-    , @ProductVersion NVARCHAR(30) 	-- Production version
-    , @ProductVersionDesc NVARCHAR(100) 	-- Production version Detail Description
-    , @Instance NVARCHAR(30) 		--  Instance name
-    --, @ISClustered NVARCHAR(20) 	-- System clustered
-    , @ISIntegratedSecurityOnly NVARCHAR(50) -- Security level
-    --, @ISSingleUser NVARCHAR(20) 	-- System in Single User mode
-    , @EnvironmentType VARCHAR(15) 	-- Physical or Virtual
-    , @TotalMEMORYinBytes NVARCHAR(10) -- Total memory
-    , @TraceFileLocation VARCHAR(100) 	-- location of trace files
+      @CurrentDate NVARCHAR(50) 	            -- Current data/time
+    , @NodeName1 NVARCHAR(50) 		            -- Name of node 1 if clustered
+    , @NodeName2 NVARCHAR(50) 		            -- Name of node 2 if clustered
+    , @AccountName NVARCHAR(50) 	            -- Account name used
+    , @VALUENAME NVARCHAR(20) 		            -- Detect account used in SQL 2005, see notes below
+    , @InstallDate datetime 		            -- Installation date of SQL Server
+    , @ProductVersion NVARCHAR(50) 	            -- Production version
+    , @ProductVersionDesc NVARCHAR(100) 	    -- Production version Detail Description
+    , @Instance NVARCHAR(30) 		            --  Instance name
+    , @ISIntegratedSecurityOnly NVARCHAR(50)    -- Security level
+    , @EnvironmentType VARCHAR(15) 	            -- Physical or Virtual
+    , @TotalMEMORYinBytes NVARCHAR(10)          -- Total memory
+    , @TraceFileLocation VARCHAR(100) 	        -- location of trace files
     , @AuditLevel int
     , @AuditLvltxt VARCHAR(50)
     , @ImagePath varchar(500)
@@ -36,14 +32,11 @@ SELECT @@SERVERNAME "Server Name", @CurrentDate "Report Date"
 ----------------------------------------------------------------
 PRINT CHAR(13) + CHAR(10) + '--##  Summary'
 
---SET @InstallDate = (SELECT  createdate FROM sys.syslogins where sid = 0x010100000000000512000000)       -- NT AUTHORITY\SYSTEM의 생성일
-SET @InstallDate = (SELECT  createdate FROM sys.syslogins where name = 'NT AUTHORITY\SYSTEM')       -- NT AUTHORITY\SYSTEM의 생성일
--- SET @InstanceName = CASE
--- 						WHEN  SERVERPROPERTY('InstanceName') IS NULL THEN 'Default Instance'
---                         ELSE CONVERT(varchar(50), SERVERPROPERTY('InstanceName'))
---                     END
+--SET @InstallDate = (SELECT  createdate FROM sys.syslogins where sid = 0x010100000000000512000000)       -- NT AUTHORITY\SYSTEM's createdate
+SET @InstallDate = (SELECT  createdate FROM sys.syslogins where name = 'NT AUTHORITY\SYSTEM')       -- NT AUTHORITY\SYSTEM's createdate
 
-SET @ProductVersion     = CONVERT(varchar(30), SERVERPROPERTY('ProductVersion'))
+SET @ProductVersion     = CONVERT(nvarchar(50), SERVERPROPERTY('ProductVersion'))     -- If not convert, Error "Implicit conversion from data type sql_variant to nvarchar is not allowed. ...."
+
 SET @ProductVersionDesc =   CASE
                                 WHEN @ProductVersion LIKE '6.5%'   THEN 'SQL Server 6.5'
                                 WHEN @ProductVersion LIKE '7.0%'   THEN 'SQL Server 7'
@@ -66,11 +59,6 @@ EXECUTE  master.dbo.xp_instance_regread
         @key          = N'SYSTEM\CurrentControlSet\Services\MSSQLServer',
         @value_name   = N'ObjectName',
         @value        = @AccountName OUTPUT
-------------------------------------------------------------------------
--- IF (SELECT CONVERT(char(30), SERVERPROPERTY('ISClustered'))) = 1
---     SET @ISClustered = 'Clustered'
--- ELSE
---     SET @ISClustered = 'Not Clustered'
 
 ------------------------------------------------------------------------
 --cluster node names. Modify if there are more than 2 nodes in cluster
@@ -82,11 +70,6 @@ BEGIN
     SET @NodeName1 = (SELECT top 1 NodeName from sys.dm_os_cluster_nodes order by NodeName)
     SET @NodeName2 = (SELECT TOP 1 NodeName from sys.dm_os_cluster_nodes  where NodeName > @NodeName1)
 END
-------------------------------------------------------------------------
--- IF (SELECT count(*) FROM sys.dm_exec_connections WHERE session_id = @@spid) > 0
---     SET @KERB = 'Kerberos not used in TCP network transport'
--- ELSE
---     SET @KERB = 'TCP is using Kerberos'
 
 ------------------------------------------------------------------------
 IF (SELECT CONVERT(int, SERVERPROPERTY('ISIntegratedSecurityOnly'))) = 1
@@ -111,48 +94,44 @@ EXEC MASTER.dbo.xp_instance_regread N'HKEY_LOCAL_MACHINE', N'SYSTEM\CurrentContr
 SELECT KeyName, KeyVal
 FROM
 (
-    SELECT 1 ValSeq, 'Clustered Status' as keyname      , CASE WHEN CONVERT(char(30), SERVERPROPERTY('ISClustered')) = 1 THEN 'Clustered'
-                                                                ELSE
-                                                                'Not Clustered' END          KeyVal
-    UNION SELECT 2, 'SQLServerName\InstanceName'        , @@ServerName -- @SQLServerName
-    UNION SELECT 3, 'Active Node'                       , SERVERPROPERTY('ComputerNamePhysicalNetBIOS')
-    UNION SELECT 4, 'Machine Name'                      , (SELECT CONVERT(char(100), SERVERPROPERTY('MachineName'))) --@MachineName
-    UNION SELECT 5, 'Instance Name'                     , CASE
-                                                            WHEN  SERVERPROPERTY('InstanceName') IS NULL THEN 'Default Instance'
-                                                            ELSE CONVERT(varchar(50), SERVERPROPERTY('InstanceName'))
-                                                        END
-    UNION SELECT 6, 'Install Date'                      , CONVERT(varchar(200), @InstallDate, 120)
-    
-    UNION SELECT 7, 'Production Name'                   , @ProductVersionDesc
-    UNION SELECT 8, 'SQL Server Edition and Bit Level'  , CONVERT(varchar(30), SERVERPROPERTY('EDITION'))
-    UNION SELECT 9, 'SQL Server Bit Level'              , CASE WHEN CHARINDEX('64-bit', @@VERSION) > 0 THEN '64bit' else '32bit' end
-    UNION SELECT 10, 'SQL Server Service Pack'          , CONVERT(varchar(30), SERVERPROPERTY('ProductLevel'))    
+    SELECT 1 ValSeq, 'Clustered Status' as keyname          ,   CASE WHEN CONVERT(char(30), SERVERPROPERTY('ISClustered')) = 1 THEN 'Clustered'
+                                                                    ELSE
+                                                                    'Not Clustered'
+                                                                END          KeyVal
+    UNION SELECT 2, 'SQLServerName\InstanceName'            , @@ServerName -- @SQLServerName
+    UNION SELECT 3, 'Active Node'                           , SERVERPROPERTY('ComputerNamePhysicalNetBIOS')
+    UNION SELECT 4, 'Machine Name'                          , (SELECT CONVERT(char(100), SERVERPROPERTY('MachineName'))) --@MachineName
+    UNION SELECT 5, 'Instance Name'                         ,   CASE
+                                                                    WHEN  SERVERPROPERTY('InstanceName') IS NULL THEN 'Default Instance'
+                                                                    ELSE CONVERT(varchar(50), SERVERPROPERTY('InstanceName'))
+                                                                END
+    UNION SELECT 6, 'Install Date'                          , CONVERT(varchar(200), @InstallDate, 120)
 
-    UNION SELECT 11, 'Logical CPU Count'                , (SELECT cpu_count FROM sys.dm_os_sys_info)
-    
-    UNION SELECT 12, 'OS Memory'                        , (select total_physical_memory_kb / 1024       from sys.dm_os_sys_memory)
-    UNION SELECT 13, 'OS Available Memory'              , (select available_physical_memory_kb / 1024   from sys.dm_os_sys_memory)
-    UNION SELECT 14, 'OS Memory Status'                 , (select system_memory_state_desc from sys.dm_os_sys_memory)
-    UNION SELECT 15, 'Max Server Memory(Megabytes)'     , (select CONVERT(char(10), [value_in_use]) from  master.sys.configurations where name = 'max server memory (MB)')
-    UNION SELECT 16, 'Min Server Memory(Megabytes)'     , (select CONVERT(char(10), [value_in_use]) from  master.sys.configurations where name = 'min server memory (MB)')
+    UNION SELECT 7, 'Production Name'                       , @ProductVersionDesc
+    UNION SELECT 8, 'SQL Server Edition and Bit Level'      , CONVERT(varchar(30), SERVERPROPERTY('EDITION'))
+    UNION SELECT 9, 'SQL Server Bit Level'                  , CASE WHEN CHARINDEX('64-bit', @@VERSION) > 0 THEN '64bit' else '32bit' end
+    UNION SELECT 10, 'SQL Server Service Pack'              , CONVERT(varchar(30), SERVERPROPERTY('ProductLevel'))    
 
-    UNION SELECT 17, 'Server IP Address'                , (SELECT TOP 1 Local_Net_Address FROM sys.dm_exec_connections WHERE net_transport = 'TCP' GROUP BY Local_Net_Address ORDER BY COUNT(*) DESC)
-    UNION SELECT 18, 'Port Number'                      , (SELECT TOP 1 local_tcp_port FROM sys.dm_exec_connections WHERE net_transport = 'TCP' GROUP BY local_tcp_port ORDER BY COUNT(*) DESC)
-    UNION SELECT 19, 'Domain Name'                      , DEFAULT_DOMAIN()
-    UNION SELECT 20, 'Service Account name'             , @AccountName
-    UNION SELECT 21, 'Node1 Name'                       , @NodeName1
-    UNION SELECT 22, 'Node2 Name'                       , @NodeName2
-    --UNION SELECT 23, 'Kerberos'                         , @KERB
-    -- UNION SELECT 23, 'Kerberos'                         , (CASE
-    --                                                         WHEN (SELECT count(*) FROM sys.dm_exec_connections WHERE session_id = @@spid) > 0 THEN 'Kerberos not used in TCP network transport'
-    --                                                         ELSE 'TCP is using Kerberos'
-    --                                                     END)  이 클라이언트의 kerberos 연결정보를 구하는 것이니 삭제
-    UNION SELECT 24, 'Security Mode'                    , @ISIntegratedSecurityOnly
-    UNION SELECT 25, 'Audit Level'                      , @AuditLvltxt
-    UNION SELECT 26, 'User Mode'                        , CASE WHEN CONVERT(int, SERVERPROPERTY('ISSingleUser')) = 1 THEN 'Single User' ELSE 'Multi User' END
-    UNION SELECT 27, 'SQL Server Collation Type'        , CONVERT(varchar(30), SERVERPROPERTY('COLLATION'))
-    UNION SELECT 28, 'SQL Server Engine Location'       , REPLACE(SUBSTRING(@ImagePath, 2, CHARINDEX('"',  @ImagePath, 2) - 2), 'sqlservr.exe', '')
-    UNION SELECT 29, 'SQL Server Errorlog Location'     , REPLACE(CAST(SERVERPROPERTY('ErrorLogFileName') AS VARCHAR(500)), 'ERRORLOG','')
+    UNION SELECT 11, 'Logical CPU Count'                    , (SELECT cpu_count FROM sys.dm_os_sys_info)
+
+    UNION SELECT 12, 'OS Memory'                            , (select total_physical_memory_kb / 1024       from sys.dm_os_sys_memory)
+    UNION SELECT 13, 'OS Available Memory'                  , (select available_physical_memory_kb / 1024   from sys.dm_os_sys_memory)
+    UNION SELECT 14, 'OS Memory Status'                     , (select system_memory_state_desc from sys.dm_os_sys_memory)
+    UNION SELECT 15, 'Max Server Memory(Megabytes)'         , (select CONVERT(char(10), [value_in_use]) from  master.sys.configurations where name = 'max server memory (MB)')
+    UNION SELECT 16, 'Min Server Memory(Megabytes)'         , (select CONVERT(char(10), [value_in_use]) from  master.sys.configurations where name = 'min server memory (MB)')
+
+    UNION SELECT 17, 'Server IP Address'                    , (SELECT TOP 1 Local_Net_Address FROM sys.dm_exec_connections WHERE net_transport = 'TCP' GROUP BY Local_Net_Address ORDER BY COUNT(*) DESC)
+    UNION SELECT 18, 'Port Number'                          , (SELECT TOP 1 local_tcp_port FROM sys.dm_exec_connections WHERE net_transport = 'TCP' GROUP BY local_tcp_port ORDER BY COUNT(*) DESC)
+    UNION SELECT 19, 'Domain Name'                          , DEFAULT_DOMAIN()
+    UNION SELECT 20, 'Service Account name'                 , @AccountName
+    UNION SELECT 21, 'Node1 Name'                           , @NodeName1
+    UNION SELECT 22, 'Node2 Name'                           , @NodeName2
+    UNION SELECT 24, 'Security Mode'                        , @ISIntegratedSecurityOnly
+    UNION SELECT 25, 'Audit Level'                          , @AuditLvltxt
+    UNION SELECT 26, 'User Mode'                            , CASE WHEN CONVERT(int, SERVERPROPERTY('ISSingleUser')) = 1 THEN 'Single User' ELSE 'Multi User' END
+    UNION SELECT 27, 'SQL Server Collation Type'            , CONVERT(varchar(30), SERVERPROPERTY('COLLATION'))
+    UNION SELECT 28, 'SQL Server Engine Location'           , REPLACE(SUBSTRING(@ImagePath, 2, CHARINDEX('"',  @ImagePath, 2) - 2), 'sqlservr.exe', '')
+    UNION SELECT 29, 'SQL Server Errorlog Location'         , REPLACE(CAST(SERVERPROPERTY('ErrorLogFileName') AS VARCHAR(500)), 'ERRORLOG','')
     UNION SELECT 30, 'SQL Server Default Trace Location'    , REPLACE(CONVERT(VARCHAR(100), SERVERPROPERTY('ErrorLogFileName')), '\ERRORLOG','\log.trc')
     UNION SELECT 31, 'Number of Link Servers'               , (SELECT COUNT(*) FROM sys.servers WHERE is_linked ='1')
 ) temp
@@ -830,9 +809,9 @@ BEGIN
     EXEC xp_instance_regread @HkeyLocal    , @MSSqlServerRegPath    , N'TcpPort'    , @TcpPort OUTPUT
     EXEC xp_instance_regread @HkeyLocal    , @MSSqlServerRegPath    , N'TcpDynamicPorts'    , @TcpDynamicPorts OUTPUT
 
-    SELECT @HkeyLocal + '\' +  @MSSqlServerRegPath registry_key, 'TcpPort' value_name, isnull(@TcpPort, '') as value_data
+    SELECT @HkeyLocal + '\' + @MSSqlServerRegPath registry_key, 'TcpPort' value_name, isnull(@TcpPort, '') as value_data
     union all
-    SELECT @HkeyLocal + '\' +  @MSSqlServerRegPath registry_key, 'TcpDynamicPorts' , isnull(@TcpDynamicPorts, '') as value_data 
+    SELECT @HkeyLocal + '\' + @MSSqlServerRegPath registry_key, 'TcpDynamicPorts' , isnull(@TcpDynamicPorts, '') as value_data 
 END
 GO
 
