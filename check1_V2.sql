@@ -174,6 +174,7 @@ CREATE TABLE #ServicesServiceStatus
     , ServiceStatus varchar(15)
     , StatusDateTime DATETIME DEFAULT (GETDATE())
     , PhysicalServerName NVARCHAR(50)
+    , ServiceAccount NVARCHAR(200)
 )
 
 DECLARE
@@ -187,7 +188,7 @@ DECLARE
     , @SQLAgent NVARCHAR(128)
     , @OLAP nvarchar(128)
     , @REGKEY NVARCHAR(128)
- 
+    , @StartupAccount NVARCHAR(128)
 SET @PhysicalSrvName = CAST(SERVERPROPERTY('MachineName') AS VARCHAR(128)) 
 SET @ChkSrvName = CAST(SERVERPROPERTY('INSTANCENAME') AS VARCHAR(128)) 
 SET @ChkInstanceName = @@ServerName
@@ -221,7 +222,17 @@ INSERT #RegResult ( ResultValue )
 EXEC master.sys.xp_regread @rootkey='HKEY_LOCAL_MACHINE', @key=@REGKEY
 
 IF (SELECT ResultValue FROM #RegResult) = 1 
-    INSERT #ServicesServiceStatus (ServiceStatus) EXEC xp_servicecontrol N'QUERYSTATE', @SQLSrv
+BEGIN
+    INSERT #ServicesServiceStatus (ServiceStatus) EXEC xp_servicecontrol N'QUERYSTATE', @SQLSrv    
+
+    -- StartupAccount from registry
+    EXEC master.sys.xp_regread @rootkey='HKEY_LOCAL_MACHINE'
+        , @key = @REGKEY, @value_name = 'ObjectName', @value = @StartupAccount output
+    
+    UPDATE #ServicesServiceStatus
+    SET ServiceAccount = @StartupAccount
+    WHERE RowID = @@identity    
+END
 ELSE 
     INSERT INTO #ServicesServiceStatus (ServiceStatus) VALUES ('NOT INSTALLED')
 
@@ -238,7 +249,17 @@ INSERT #RegResult ( ResultValue )
 EXEC master.sys.xp_regread @rootkey='HKEY_LOCAL_MACHINE', @key=@REGKEY
 
 IF (SELECT ResultValue FROM #RegResult) = 1
-    INSERT #ServicesServiceStatus (ServiceStatus) EXEC xp_servicecontrol N'QUERYSTATE',@SQLAgent
+BEGIN
+    INSERT #ServicesServiceStatus (ServiceStatus) EXEC xp_servicecontrol N'QUERYSTATE',@SQLAgent    
+
+    -- StartupAccount from registry
+    EXEC master.sys.xp_regread @rootkey='HKEY_LOCAL_MACHINE'
+        , @key = @REGKEY, @value_name = 'ObjectName', @value = @StartupAccount output
+    
+    UPDATE #ServicesServiceStatus
+    SET ServiceAccount = @StartupAccount
+    WHERE RowID = @@identity    
+END    
 ELSE 
     INSERT INTO #ServicesServiceStatus (ServiceStatus) VALUES ('NOT INSTALLED')
 
@@ -253,8 +274,17 @@ SET @REGKEY = 'System\CurrentControlSet\Services\SQLBrowser'
 
 INSERT #RegResult ( ResultValue ) EXEC master.sys.xp_regread @rootkey='HKEY_LOCAL_MACHINE', @key=@REGKEY
 
-IF (SELECT ResultValue FROM #RegResult) = 1 
+IF (SELECT ResultValue FROM #RegResult) = 1     
+BEGIN
     INSERT #ServicesServiceStatus (ServiceStatus) EXEC master.dbo.xp_servicecontrol N'QUERYSTATE',N'sqlbrowser'
+    -- StartupAccount from registry
+    EXEC master.sys.xp_regread @rootkey='HKEY_LOCAL_MACHINE'
+        , @key = @REGKEY, @value_name = 'ObjectName', @value = @StartupAccount output
+    
+    UPDATE #ServicesServiceStatus
+    SET ServiceAccount = @StartupAccount
+    WHERE RowID = @@identity    
+END        
 ELSE 
     INSERT INTO #ServicesServiceStatus (ServiceStatus) VALUES ('NOT INSTALLED')
 
@@ -288,7 +318,16 @@ SET @REGKEY = 'System\CurrentControlSet\Services\' + @integrationServiceIns
 INSERT #RegResult ( ResultValue ) EXEC master.sys.xp_regread @rootkey='HKEY_LOCAL_MACHINE', @key=@REGKEY
 
 IF (SELECT ResultValue FROM #RegResult) = 1 
+BEGIN
     INSERT #ServicesServiceStatus (ServiceStatus) EXEC master.dbo.xp_servicecontrol N'QUERYSTATE', @integrationServiceIns
+    -- StartupAccount from registry
+    EXEC master.sys.xp_regread @rootkey='HKEY_LOCAL_MACHINE'
+        , @key = @REGKEY, @value_name = 'ObjectName', @value = @StartupAccount output
+    
+    UPDATE #ServicesServiceStatus
+    SET ServiceAccount = @StartupAccount
+    WHERE RowID = @@identity    
+END            
 ELSE 
     INSERT INTO #ServicesServiceStatus (ServiceStatus) VALUES ('NOT INSTALLED')
 
@@ -304,7 +343,16 @@ SET @REGKEY = 'System\CurrentControlSet\Services\' + @RS
 INSERT #RegResult ( ResultValue ) EXEC master.sys.xp_regread @rootkey='HKEY_LOCAL_MACHINE', @key=@REGKEY
 
 IF (SELECT ResultValue FROM #RegResult) = 1
+BEGIN
     INSERT #ServicesServiceStatus (ServiceStatus) EXEC master.dbo.xp_servicecontrol N'QUERYSTATE',@RS
+    -- StartupAccount from registry
+    EXEC master.sys.xp_regread @rootkey='HKEY_LOCAL_MACHINE'
+        , @key = @REGKEY, @value_name = 'ObjectName', @value = @StartupAccount output
+    
+    UPDATE #ServicesServiceStatus
+    SET ServiceAccount = @StartupAccount
+    WHERE RowID = @@identity    
+END
 ELSE 
     INSERT INTO #ServicesServiceStatus (ServiceStatus) VALUES ('NOT INSTALLED')
 
@@ -316,19 +364,26 @@ TRUNCATE TABLE #RegResult
 
 ----- 02.6 Analysis Service Section -------------------
 IF @ChkSrvName IS NULL                                
-    BEGIN 
     SET @OLAP = 'MSSQLServerOLAPService'
-    END
 ELSE    
-    BEGIN
     SET @OLAP = 'MSOLAP'+'$'+@ChkSrvName
-    SET @REGKEY = 'System\CurrentControlSet\Services\' + @OLAP
-END
+
+SET @REGKEY = 'System\CurrentControlSet\Services\' + @OLAP
 
 INSERT #RegResult ( ResultValue ) EXEC master.sys.xp_regread @rootkey='HKEY_LOCAL_MACHINE', @key=@REGKEY
 
-IF (SELECT ResultValue FROM #RegResult) = 1 
+IF (SELECT ResultValue FROM #RegResult) = 1
+BEGIN
     INSERT #ServicesServiceStatus (ServiceStatus) EXEC master.dbo.xp_servicecontrol N'QUERYSTATE', @OLAP
+
+    -- StartupAccount from registry
+    EXEC master.sys.xp_regread @rootkey='HKEY_LOCAL_MACHINE'
+        , @key = @REGKEY, @value_name = 'ObjectName', @value = @StartupAccount output
+    
+    UPDATE #ServicesServiceStatus
+    SET ServiceAccount = @StartupAccount
+    WHERE RowID = @@identity
+END
 ELSE 
     INSERT INTO #ServicesServiceStatus (ServiceStatus) VALUES ('NOT INSTALLED')
 
@@ -343,9 +398,19 @@ SET @REGKEY = 'System\CurrentControlSet\Services\' + @FTS
 
 INSERT #RegResult ( ResultValue ) EXEC master.sys.xp_regread @rootkey='HKEY_LOCAL_MACHINE', @key=@REGKEY
 
-IF (SELECT ResultValue FROM #RegResult) = 1 
+IF (SELECT ResultValue FROM #RegResult) = 1
+BEGIN
     INSERT #ServicesServiceStatus (ServiceStatus) EXEC master.dbo.xp_servicecontrol N'QUERYSTATE',@FTS
-ELSE 
+    
+    -- StartupAccount from registry
+    EXEC master.sys.xp_regread @rootkey='HKEY_LOCAL_MACHINE'
+        , @key = @REGKEY, @value_name = 'ObjectName', @value = @StartupAccount output
+    
+    UPDATE #ServicesServiceStatus
+    SET ServiceAccount = @StartupAccount
+    WHERE RowID = @@identity
+END
+ELSE
     INSERT INTO #ServicesServiceStatus (ServiceStatus) VALUES ('NOT INSTALLED')
 
 UPDATE #ServicesServiceStatus
@@ -361,10 +426,11 @@ set ServerName = @TrueSrvName, PhysicalServerName = @PhysicalSrvName
 ----- 02.9 Total Service Section ----------------------
 PRINT CHAR(13) + CHAR(10) + '--##  SQL Server All Services' 
 
-SELECT ServerName as 'SQL Server\Instance Name'
-    , ServiceName as 'Service Name'
-    , ServiceStatus as 'Service Status'
-    , StatusDateTime as 'Status Date\Time'
+SELECT ServerName as 'SQLServer\InstanceName'
+    , ServiceName
+    , ServiceStatus
+    , ServiceAccount    -- 2019-04-12 add
+    , StatusDateTime
 FROM  #ServicesServiceStatus;        
 
 DROP TABLE #ServicesServiceStatus;   
