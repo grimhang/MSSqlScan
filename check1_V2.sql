@@ -221,7 +221,7 @@ INSERT #RegResult ( ResultValue )
 EXEC master.sys.xp_regread @rootkey='HKEY_LOCAL_MACHINE', @key=@REGKEY
 
 IF (SELECT ResultValue FROM #RegResult) = 1 
-    INSERT #ServicesServiceStatus (ServiceStatus) EXEC xp_servicecontrol N'QUERYSTATE',@SQLSrv
+    INSERT #ServicesServiceStatus (ServiceStatus) EXEC xp_servicecontrol N'QUERYSTATE', @SQLSrv
 ELSE 
     INSERT INTO #ServicesServiceStatus (ServiceStatus) VALUES ('NOT INSTALLED')
 
