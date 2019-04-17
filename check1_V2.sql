@@ -19,7 +19,7 @@ DECLARE
     , @TotalMEMORYinBytes NVARCHAR(10)          -- Total memory
 --    , @TraceFileLocation VARCHAR(100) 	        -- location of trace files
     , @AuditLevel int
-    , @AuditLvltxt VARCHAR(50)
+--    , @AuditLvltxt VARCHAR(50)
     , @ImagePath varchar(500)
 
 SET @CurrentDate = CONVERT(varchar(100), GETDATE(), 120)
@@ -79,14 +79,14 @@ END
 ------------------------------------------------------------------------
 EXEC MASTER.dbo.xp_instance_regread N'HKEY_LOCAL_MACHINE', N'Software\Microsoft\MSSQLServer\MSSQLServer', N'AuditLevel', @AuditLevel OUTPUT
 
-SELECT @AuditLvltxt =
-	CASE 
-        WHEN @AuditLevel = 0    THEN 'None'
-        WHEN @AuditLevel = 1    THEN 'Successful logins only'
-        WHEN @AuditLevel = 2    THEN 'Failed logins only'
-        WHEN @AuditLevel = 3    THEN 'Both successful and failed logins'
-    	ELSE 'Unknown'
-    END
+-- SELECT @AuditLvltxt =
+-- 	CASE 
+--         WHEN @AuditLevel = 0    THEN 'None'
+--         WHEN @AuditLevel = 1    THEN 'Successful logins only'
+--         WHEN @AuditLevel = 2    THEN 'Failed logins only'
+--         WHEN @AuditLevel = 3    THEN 'Both successful and failed logins'
+--     	ELSE 'Unknown'
+--     END
 ------------------------------------------------------------------------
 EXEC MASTER.dbo.xp_instance_regread N'HKEY_LOCAL_MACHINE', N'SYSTEM\CurrentControlSet\Services\MSSQLSERVER', N'ImagePath', @ImagePath OUTPUT
 
@@ -131,7 +131,14 @@ FROM
                                                                    ELSE 'SQL Server Authentication Security Mode'
                                                               END
 
-    UNION SELECT 25, 'Audit Level'                          , @AuditLvltxt
+    --UNION SELECT 25, 'Audit Level'                          , @AuditLvltxt
+    UNION SELECT 25, 'Audit Level'                          , CASE 
+                                                                WHEN @AuditLevel = 0    THEN 'None'
+                                                                WHEN @AuditLevel = 1    THEN 'Successful logins only'
+                                                                WHEN @AuditLevel = 2    THEN 'Failed logins only'
+                                                                WHEN @AuditLevel = 3    THEN 'Both successful and failed logins'
+                                                                ELSE 'Unknown'
+                                                              END
     UNION SELECT 26, 'User Mode'                            , CASE WHEN CONVERT(int, SERVERPROPERTY('ISSingleUser')) = 1 THEN 'Single User' ELSE 'Multi User' END
     UNION SELECT 27, 'SQL Server Collation Type'            , CONVERT(varchar(30), SERVERPROPERTY('COLLATION'))
     UNION SELECT 28, 'SQL Server Engine Location'           , REPLACE(SUBSTRING(@ImagePath, 2, CHARINDEX('"',  @ImagePath, 2) - 2), 'sqlservr.exe', '')
