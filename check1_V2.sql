@@ -5,8 +5,8 @@
 SET NOCOUNT ON;
 
 DECLARE
-      @CurrentDate NVARCHAR(50) 	            -- Current data/time
-    , @NodeName1 NVARCHAR(50) 		            -- Name of node 1 if clustered
+--      @CurrentDate NVARCHAR(50) 	            -- Current data/time
+     @NodeName1 NVARCHAR(50) 		            -- Name of node 1 if clustered
     , @NodeName2 NVARCHAR(50) 		            -- Name of node 2 if clustered
     , @AccountName NVARCHAR(50) 	            -- Account name used
     , @VALUENAME NVARCHAR(20) 		            -- Detect account used in SQL 2005, see notes below
@@ -22,12 +22,12 @@ DECLARE
 --    , @AuditLvltxt VARCHAR(50)
     , @ImagePath varchar(500)
 
-SET @CurrentDate = CONVERT(varchar(100), GETDATE(), 120)
+--SET @CurrentDate = CONVERT(varchar(100), GETDATE(), 120)
 
 --=================== 01. MS-SQL Server Information =================
 PRINT '--##  Report Date'   -- Ver 2.0
 
-SELECT @@SERVERNAME "Server Name", @CurrentDate "Report Date"
+SELECT @@SERVERNAME "Server Name", CONVERT(varchar(100), GETDATE(), 120) "Report Date"
 
 ----------------------------------------------------------------
 PRINT CHAR(13) + CHAR(10) + '--##  Summary'
@@ -36,7 +36,6 @@ PRINT CHAR(13) + CHAR(10) + '--##  Summary'
 SET @InstallDate = (SELECT  createdate FROM sys.syslogins where name = 'NT AUTHORITY\SYSTEM')       -- NT AUTHORITY\SYSTEM's createdate
 
 SET @ProductVersion     = CONVERT(nvarchar(50), SERVERPROPERTY('ProductVersion'))     -- If not convert, Error "Implicit conversion from data type sql_variant to nvarchar is not allowed. ...."
-
 SET @ProductVersionDesc =   CASE
                                 WHEN @ProductVersion LIKE '6.5%'   THEN 'SQL Server 6.5'
                                 WHEN @ProductVersion LIKE '7.0%'   THEN 'SQL Server 7'
