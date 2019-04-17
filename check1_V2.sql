@@ -17,7 +17,7 @@ DECLARE
 --    , @ISIntegratedSecurityOnly NVARCHAR(50)    -- Security level
     , @EnvironmentType VARCHAR(15) 	            -- Physical or Virtual
     , @TotalMEMORYinBytes NVARCHAR(10)          -- Total memory
-    , @TraceFileLocation VARCHAR(100) 	        -- location of trace files
+--    , @TraceFileLocation VARCHAR(100) 	        -- location of trace files
     , @AuditLevel int
     , @AuditLvltxt VARCHAR(50)
     , @ImagePath varchar(500)
