@@ -14,7 +14,7 @@ DECLARE
     , @ProductVersion NVARCHAR(50) 	            -- Production version
     , @ProductVersionDesc NVARCHAR(100) 	    -- Production version Detail Description
     , @Instance NVARCHAR(30) 		            --  Instance name
-    , @ISIntegratedSecurityOnly NVARCHAR(50)    -- Security level
+--    , @ISIntegratedSecurityOnly NVARCHAR(50)    -- Security level
     , @EnvironmentType VARCHAR(15) 	            -- Physical or Virtual
     , @TotalMEMORYinBytes NVARCHAR(10)          -- Total memory
     , @TraceFileLocation VARCHAR(100) 	        -- location of trace files
@@ -72,10 +72,10 @@ BEGIN
 END
 
 ------------------------------------------------------------------------
-IF (SELECT CONVERT(int, SERVERPROPERTY('ISIntegratedSecurityOnly'))) = 1
-    SET @ISIntegratedSecurityOnly = 'Windows Authentication Security Mode'
-ELSE
-    SET @ISIntegratedSecurityOnly = 'SQL Server Authentication Security Mode'
+-- IF (SELECT CONVERT(int, SERVERPROPERTY('ISIntegratedSecurityOnly'))) = 1
+--     SET @ISIntegratedSecurityOnly = 'Windows Authentication Security Mode'
+-- ELSE
+--     SET @ISIntegratedSecurityOnly = 'SQL Server Authentication Security Mode'
 ------------------------------------------------------------------------
 EXEC MASTER.dbo.xp_instance_regread N'HKEY_LOCAL_MACHINE', N'Software\Microsoft\MSSQLServer\MSSQLServer', N'AuditLevel', @AuditLevel OUTPUT
 
@@ -100,7 +100,7 @@ FROM
                                                                 END          KeyVal
     UNION SELECT 2, 'SQLServerName\InstanceName'            , @@ServerName -- @SQLServerName
     UNION SELECT 3, 'Active Node'                           , SERVERPROPERTY('ComputerNamePhysicalNetBIOS')
-    UNION SELECT 4, 'Machine Name'                          , (SELECT CONVERT(char(100), SERVERPROPERTY('MachineName'))) --@MachineName
+    UNION SELECT 4, 'Machine Name'                          , CONVERT(char(100), SERVERPROPERTY('MachineName')) --@MachineName
     UNION SELECT 5, 'Instance Name'                         ,   CASE
                                                                     WHEN  SERVERPROPERTY('InstanceName') IS NULL THEN 'Default Instance'
                                                                     ELSE CONVERT(varchar(50), SERVERPROPERTY('InstanceName'))
@@ -126,7 +126,11 @@ FROM
     UNION SELECT 20, 'Service Account name'                 , @AccountName
     UNION SELECT 21, 'Node1 Name'                           , @NodeName1
     UNION SELECT 22, 'Node2 Name'                           , @NodeName2
-    UNION SELECT 24, 'Security Mode'                        , @ISIntegratedSecurityOnly
+    --UNION SELECT 24, 'Security Mode'                        , @ISIntegratedSecurityOnly
+    UNION SELECT 24, 'Security Mode'                        , CASE WHEN CONVERT(int, SERVERPROPERTY('ISIntegratedSecurityOnly')) = 1 THEN 'Windows Authentication Security Mode'
+                                                                   ELSE 'SQL Server Authentication Security Mode'
+                                                              END
+
     UNION SELECT 25, 'Audit Level'                          , @AuditLvltxt
     UNION SELECT 26, 'User Mode'                            , CASE WHEN CONVERT(int, SERVERPROPERTY('ISSingleUser')) = 1 THEN 'Single User' ELSE 'Multi User' END
     UNION SELECT 27, 'SQL Server Collation Type'            , CONVERT(varchar(30), SERVERPROPERTY('COLLATION'))
