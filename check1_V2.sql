@@ -1,6 +1,7 @@
 ﻿/* SQL Server Configuration Report  
 2018-01-18     Ver1 초기완성 버전
 2018-02-18     Ver2 개선 버전
+2018-04-26     Ver2 최종 개선 버전
 -------------------------------------------------------------------------*/
 SET NOCOUNT ON;
 
@@ -17,8 +18,6 @@ DECLARE
     , @TotalMEMORYinBytes NVARCHAR(10)          -- Total memory
     , @AuditLevel int
     , @ImagePath varchar(500)
-
---SET @CurrentDate = CONVERT(varchar(100), GETDATE(), 120)
 
 --=================== 01. MS-SQL Server Information =================
 PRINT '--##  Report Date'   -- Ver 2.0
