@@ -5,7 +5,6 @@
 SET NOCOUNT ON;
 
 DECLARE
---      @CurrentDate NVARCHAR(50) 	            -- Current data/time
      @NodeName1 NVARCHAR(50) 		            -- Name of node 1 if clustered
     , @NodeName2 NVARCHAR(50) 		            -- Name of node 2 if clustered
     , @AccountName NVARCHAR(50) 	            -- Account name used
@@ -14,12 +13,9 @@ DECLARE
     , @ProductVersion NVARCHAR(50) 	            -- Production version
     , @ProductVersionDesc NVARCHAR(100) 	    -- Production version Detail Description
     , @Instance NVARCHAR(30) 		            --  Instance name
---    , @ISIntegratedSecurityOnly NVARCHAR(50)    -- Security level
     , @EnvironmentType VARCHAR(15) 	            -- Physical or Virtual
     , @TotalMEMORYinBytes NVARCHAR(10)          -- Total memory
---    , @TraceFileLocation VARCHAR(100) 	        -- location of trace files
     , @AuditLevel int
---    , @AuditLvltxt VARCHAR(50)
     , @ImagePath varchar(500)
 
 --SET @CurrentDate = CONVERT(varchar(100), GETDATE(), 120)
@@ -32,7 +28,6 @@ SELECT @@SERVERNAME "Server Name", CONVERT(varchar(100), GETDATE(), 120) "Report
 ----------------------------------------------------------------
 PRINT CHAR(13) + CHAR(10) + '--##  Summary'
 
---SET @InstallDate = (SELECT  createdate FROM sys.syslogins where sid = 0x010100000000000512000000)       -- NT AUTHORITY\SYSTEM's createdate
 SET @InstallDate = (SELECT  createdate FROM sys.syslogins where name = 'NT AUTHORITY\SYSTEM')       -- NT AUTHORITY\SYSTEM's createdate
 
 SET @ProductVersion     = CONVERT(nvarchar(50), SERVERPROPERTY('ProductVersion'))     -- If not convert, Error "Implicit conversion from data type sql_variant to nvarchar is not allowed. ...."
@@ -71,21 +66,8 @@ BEGIN
 END
 
 ------------------------------------------------------------------------
--- IF (SELECT CONVERT(int, SERVERPROPERTY('ISIntegratedSecurityOnly'))) = 1
---     SET @ISIntegratedSecurityOnly = 'Windows Authentication Security Mode'
--- ELSE
---     SET @ISIntegratedSecurityOnly = 'SQL Server Authentication Security Mode'
-------------------------------------------------------------------------
 EXEC MASTER.dbo.xp_instance_regread N'HKEY_LOCAL_MACHINE', N'Software\Microsoft\MSSQLServer\MSSQLServer', N'AuditLevel', @AuditLevel OUTPUT
 
--- SELECT @AuditLvltxt =
--- 	CASE 
---         WHEN @AuditLevel = 0    THEN 'None'
---         WHEN @AuditLevel = 1    THEN 'Successful logins only'
---         WHEN @AuditLevel = 2    THEN 'Failed logins only'
---         WHEN @AuditLevel = 3    THEN 'Both successful and failed logins'
---     	ELSE 'Unknown'
---     END
 ------------------------------------------------------------------------
 EXEC MASTER.dbo.xp_instance_regread N'HKEY_LOCAL_MACHINE', N'SYSTEM\CurrentControlSet\Services\MSSQLSERVER', N'ImagePath', @ImagePath OUTPUT
 
@@ -109,7 +91,7 @@ FROM
     UNION SELECT 7, 'Production Name'                       , @ProductVersionDesc
     UNION SELECT 8, 'SQL Server Edition and Bit Level'      , CONVERT(varchar(30), SERVERPROPERTY('EDITION'))
     UNION SELECT 9, 'SQL Server Bit Level'                  , CASE WHEN CHARINDEX('64-bit', @@VERSION) > 0 THEN '64bit' else '32bit' end
-    UNION SELECT 10, 'SQL Server Service Pack'              , CONVERT(varchar(30), SERVERPROPERTY('ProductLevel'))    
+    UNION SELECT 10, 'SQL Server Service Pack'              , CONVERT(varchar(30), SERVERPROPERTY('ProductLevel'))
 
     UNION SELECT 11, 'Logical CPU Count'                    , (SELECT cpu_count FROM sys.dm_os_sys_info)
 
@@ -125,12 +107,9 @@ FROM
     UNION SELECT 20, 'Service Account name'                 , @AccountName
     UNION SELECT 21, 'Node1 Name'                           , @NodeName1
     UNION SELECT 22, 'Node2 Name'                           , @NodeName2
-    --UNION SELECT 24, 'Security Mode'                        , @ISIntegratedSecurityOnly
     UNION SELECT 24, 'Security Mode'                        , CASE WHEN CONVERT(int, SERVERPROPERTY('ISIntegratedSecurityOnly')) = 1 THEN 'Windows Authentication Security Mode'
                                                                    ELSE 'SQL Server Authentication Security Mode'
                                                               END
-
-    --UNION SELECT 25, 'Audit Level'                          , @AuditLvltxt
     UNION SELECT 25, 'Audit Level'                          , CASE 
                                                                 WHEN @AuditLevel = 0    THEN 'None'
                                                                 WHEN @AuditLevel = 1    THEN 'Successful logins only'
@@ -156,7 +135,7 @@ from sys.server_principals
 where type in ('S', 'U')
 order by name
 ------------------------------------------------------------------------
-PRINT CHAR(13) + CHAR(10) + '--##  Server Configuration' 
+PRINT CHAR(13) + CHAR(10) + '--##  Server Configuration'
 
 SELECT [name]                               AS 'Configuration Setting'
     , (CONVERT (CHAR(20),[value_in_use] ))  AS 'Value in Use'
@@ -179,7 +158,7 @@ CREATE TABLE #RegResult (ResultValue NVARCHAR(4))
 CREATE TABLE #ServicesServiceStatus            
 ( 
      RowID INT IDENTITY(1,1)
-    , ServerName NVARCHAR(30) 
+    , ServerName NVARCHAR(30)
     , ServiceName NVARCHAR(45)
     , ServiceStatus varchar(15)
     , StatusDateTime DATETIME DEFAULT (GETDATE())
@@ -207,7 +186,6 @@ IF @ChkSrvName IS NULL
 BEGIN 
     SET @TrueSrvName = 'MSQLSERVER'
     SET @OLAP = 'MSSQLServerOLAPService'     
-    --SELECT @FTS = 'MSFTESQL'  
     SET @FTS = 'MSSQLFDLauncher'
     SET @RS = 'ReportServer' 
     SET @SQLAgent = 'SQLSERVERAGENT'
@@ -218,7 +196,6 @@ BEGIN
     SET @TrueSrvName =  CAST(SERVERPROPERTY('INSTANCENAME') AS VARCHAR(128)) 
     SET @SQLSrv = '$' + @ChkSrvName
     SET @OLAP = 'MSOLAP' + @SQLSrv    /*Setting up proper service name*/
-    --SELECT @FTS = 'MSFTESQL' + @SQLSrv 
     SET @FTS = 'MSSQLFDLauncher' + @SQLSrv 
     SET @RS = 'ReportServer' + @SQLSrv
     SET @SQLAgent = 'SQLAgent' + @SQLSrv
@@ -226,6 +203,7 @@ BEGIN
 END 
 ;
 ----- 02.1 SQL Server Service Section -----------------
+-- 여기 xp_instance_regread로 바꾸기
 SET @REGKEY = 'System\CurrentControlSet\Services\' + @SQLSrv
 
 INSERT #RegResult ( ResultValue )
@@ -236,9 +214,12 @@ BEGIN
     INSERT #ServicesServiceStatus (ServiceStatus) EXEC xp_servicecontrol N'QUERYSTATE', @SQLSrv    
 
     -- StartupAccount from registry
-    EXEC master.sys.xp_regread @rootkey='HKEY_LOCAL_MACHINE'
-        , @key = @REGKEY, @value_name = 'ObjectName', @value = @StartupAccount output
-    
+    EXEC master.sys.xp_regread
+        @rootkey    = N'HKEY_LOCAL_MACHINE',
+        @key        = @REGKEY,
+        @value_name = N'ObjectName',
+        @value      = @StartupAccount OUTPUT
+
     UPDATE #ServicesServiceStatus
     SET ServiceAccount = @StartupAccount
     WHERE RowID = @@identity    
@@ -570,10 +551,6 @@ SELECT CONVERT(nvarchar(35),DBName)   AS 'Database Name'
 FROM 
 (
     SELECT DB.name DBName,
-        -- CASE
-        --     WHEN MIRROR.mirroring_state is NULL THEN 'Database Mirroring not configured and/or set'
-        --     ELSE 'Mirroring is configured and/or set'
-        -- END AS MirroringState
         'Mirroring is dnabled'  AS MirroringState
     FROM sys.databases DB
     JOIN sys.database_mirroring MIRROR      ON DB.database_id = MIRROR.database_id
