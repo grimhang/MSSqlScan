@@ -718,6 +718,7 @@ SELECT
 , CONVERT(nvarchar(25),data_source) as 'Data Source'
 FROM sys.servers
 WHERE is_linked ='1'
+order by name
 
 ----- 06.2 Linked Servers Logins Section ------
 PRINT CHAR(13) + CHAR(10) + '--##  Linked Servers Logins'
