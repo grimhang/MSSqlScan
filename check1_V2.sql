@@ -456,6 +456,7 @@ SELECT
     , Max(D.user_access_desc)		AS 'User Access'
     , Max(D.state_desc)				AS 'Status'
     , Max(D.recovery_model_desc)	AS 'Recovery Model'
+    , MAX(SUSER_SNAME(D.owner_sid))   AS DBOwnerName
     , SUM(CASE WHEN F.type_desc ='ROWS' THEN CAST(F.size AS BIGINT) ELSE 0 END) * 8/ 1024	AS TotalDataDiskSpace_MB
     , SUM(CASE WHEN F.type_desc ='LOG' THEN CAST(F.size AS BIGINT) ELSE 0 END) * 8 / 1024 	AS TotalLogDiskSpace_MB
 FROM SYS.DATABASES D
