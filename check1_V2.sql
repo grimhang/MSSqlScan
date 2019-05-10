@@ -735,6 +735,7 @@ FROM sys.Servers s
     LEFT JOIN sys.linked_logins sl ON s.server_id = sl.server_id
     LEFT JOIN sys.server_principals ssp ON ssp.principal_id = sl.local_principal_id
 WHERE s.server_id <> 0
+order by s.name
 GO
 
 --=================== 07. ETC =============================
