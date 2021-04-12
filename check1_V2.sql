@@ -1,7 +1,8 @@
-﻿/* SQL Server Configuration Report  
+/* SQL Server Configuration Report  
 2018-01-18     Ver1 초기완성 버전
 2018-02-18     Ver2 개선 버전
 2018-04-26     Ver2 최종 개선 버전
+2021-04-12     Ver2 Database 쪽 옵션 추가
 -------------------------------------------------------------------------*/
 SET NOCOUNT ON;
 
@@ -451,14 +452,18 @@ PRINT CHAR(13) + CHAR(10) + '--##  Databases'
 SELECT 
     D.database_id 'Database ID'
     , D.name AS 'DBName'
-    , Max(D.collation_name)			AS 'Collation'
-    , Max(D.compatibility_level)	AS 'Compatibility'
-    , Max(D.user_access_desc)		AS 'User Access'
-    , Max(D.state_desc)				AS 'Status'
-    , Max(D.recovery_model_desc)	AS 'Recovery Model'
-    , MAX(SUSER_SNAME(D.owner_sid))   AS DBOwnerName
+    , Max(D.collation_name)			    AS 'Collation'
+    , Max(D.compatibility_level)	    AS 'Compatibility'
+    , Max(D.user_access_desc)		    AS 'User Access'
+    , Max(D.state_desc)				    AS 'Status'
+    , Max(D.recovery_model_desc)	    AS 'Recovery Model'
+    , MAX(SUSER_SNAME(D.owner_sid))     AS 'DBOwnerName'
     , SUM(CASE WHEN F.type_desc ='ROWS' THEN CAST(F.size AS BIGINT) ELSE 0 END) * 8/ 1024	AS TotalDataDiskSpace_MB
     , SUM(CASE WHEN F.type_desc ='LOG' THEN CAST(F.size AS BIGINT) ELSE 0 END) * 8 / 1024 	AS TotalLogDiskSpace_MB
+    , MAX(D.snapshot_isolation_state_desc)                                                  AS 'Snapshot Isolation State'
+    , CASE D.is_read_committed_snapshot_on WHEN 0 THEN 'False' ELSE 'True'  END             AS 'Is ReadCommitted Snapshot On'
+    , MAX(D.log_reuse_wait_desc)                                                            AS 'Log Reuse Wait Desc'
+    , MAX(D.target_recovery_time_in_seconds)                                                AS 'Target Recovery Time_Sec'
 FROM SYS.DATABASES D
     JOIN sys.master_files F					ON D.database_id= F.database_id
     LEFT JOIN
@@ -472,7 +477,7 @@ FROM SYS.DATABASES D
     ) B			ON B.database_name = D.name 
 --WHERE D.name NOT IN ('master', 'model', 'tempdb')
     --AND D.DATABASE_ID = 9 AND type_desc ='ROWS'
-GROUP BY D.database_id, D.[name]
+GROUP BY D.database_id, D.[name], D.is_read_committed_snapshot_on
 ORDER BY D.[name]
 GO
 
