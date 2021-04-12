@@ -2,7 +2,7 @@
 2018-01-18     Ver1 초기완성 버전
 2018-02-18     Ver2 개선 버전
 2018-04-26     Ver2 최종 개선 버전
-2021-04-12     Ver2 Database 쪽 옵션 추가
+2021-04-12     Ver2 Database 쪽 옵션 추가, AG 여부 추가
 -------------------------------------------------------------------------*/
 SET NOCOUNT ON;
 
@@ -75,9 +75,13 @@ EXEC MASTER.dbo.xp_instance_regread N'HKEY_LOCAL_MACHINE', N'SYSTEM\CurrentContr
 SELECT KeyName, KeyVal
 FROM
 (
-    SELECT 1 ValSeq, 'Clustered Status' as keyname          ,   CASE WHEN CONVERT(char(30), SERVERPROPERTY('ISClustered')) = 1 THEN 'Clustered'
+    SELECT 0 ValSeq, 'Clustered Status' as keyname          ,   CASE WHEN CONVERT(char(30), SERVERPROPERTY('ISClustered')) = 1 THEN 'Clustered'
                                                                     ELSE
                                                                     'Not Clustered'
+                                                                END          KeyVal
+    UNION SELECT 1 ValSeq, 'AlwaysOn AG YN' as keyname          ,   CASE WHEN SERVERPROPERTY('IsHadrEnabled') = 1 THEN 'Y'
+                                                                    ELSE
+                                                                    'N'
                                                                 END          KeyVal
     UNION SELECT 2, 'SQLServerName\InstanceName'            , @@ServerName -- @SQLServerName
     UNION SELECT 3, 'Active Node'                           , SERVERPROPERTY('ComputerNamePhysicalNetBIOS')
