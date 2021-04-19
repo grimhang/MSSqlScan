@@ -127,6 +127,7 @@ FROM
     UNION SELECT 29, 'SQL Server Errorlog Location'         , REPLACE(CAST(SERVERPROPERTY('ErrorLogFileName') AS VARCHAR(500)), 'ERRORLOG','')
     UNION SELECT 30, 'SQL Server Default Trace Location'    , REPLACE(CONVERT(VARCHAR(100), SERVERPROPERTY('ErrorLogFileName')), '\ERRORLOG','\log.trc')
     UNION SELECT 31, 'Number of Link Servers'               , (SELECT COUNT(*) FROM sys.servers WHERE is_linked ='1')
+    UNION SELECT 32, 'SQL Server Engine Start Time'         , (SELECT sqlserver_start_time FROM sys.dm_os_sys_info)
 ) temp
 ORDER BY ValSeq
 ------------------------------------------------------------------------
