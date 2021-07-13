@@ -146,7 +146,7 @@ PRINT CHAR(13) + CHAR(10) + '--##  Server Configuration'
 SELECT [name]                               AS 'Configuration Setting'
     , (CONVERT (CHAR(20),[value_in_use] ))  AS 'Value in Use'
 FROM master.sys.configurations
-
+ORDER BY name
 ------------------------------------------------------------------------
 PRINT CHAR(13) + CHAR(10) + '--##  Automatically executes on startup Code'
 
