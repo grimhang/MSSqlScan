@@ -492,7 +492,9 @@ PRINT CHAR(13) + CHAR(10) + '--##  Database Files'
 
 SELECT 
     D.name AS 'DBName'
-    , S.*
+    , S.database_id, S.[file_id], S.type, S.type_desc, S.data_space_id, S.name, S.physical_name, S.state, S.state_desc
+    , S.size / 128 AS DBSize_MB, S.max_size, S.growth / 128 AS growth_MB
+    -- , S.*
 FROM SYS.DATABASES D
     INNER JOIN sys.master_files S       ON D.database_id= S.database_id
 --WHERE D.name NOT IN ('model')
