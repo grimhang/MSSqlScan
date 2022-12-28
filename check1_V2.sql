@@ -6,6 +6,9 @@
 2021-07-13     Ver2 sys.configuration에 order by name 추가
 2022-12-26     Ver2 데이터베이스 파일 크기 정확하게 수정
 -------------------------------------------------------------------------*/
+USE MASTER
+GO
+
 SET NOCOUNT ON;
 
 DECLARE
