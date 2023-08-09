@@ -112,8 +112,8 @@ FROM
     UNION SELECT 14, 'OS Memory'                            , (select total_physical_memory_kb / 1024       from sys.dm_os_sys_memory)
     UNION SELECT 15, 'OS Available Memory'                  , (select available_physical_memory_kb / 1024   from sys.dm_os_sys_memory)
     UNION SELECT 16, 'OS Memory Status'                     , (select system_memory_state_desc from sys.dm_os_sys_memory)
-    UNION SELECT 17, 'Max Server Memory(Megabytes)'         , (select CONVERT(char(10), [value_in_use]) from  master.sys.configurations where name = 'max server memory (MB)')
-    UNION SELECT 18, 'Min Server Memory(Megabytes)'         , (select CONVERT(char(10), [value_in_use]) from  master.sys.configurations where name = 'min server memory (MB)')
+    UNION SELECT 17, 'Max Server Memory(Megabytes)'         , (select CONVERT(varchar(20), [value_in_use]) from  master.sys.configurations where name = 'max server memory (MB)')
+    UNION SELECT 18, 'Min Server Memory(Megabytes)'         , (select CONVERT(varchar(20), [value_in_use]) from  master.sys.configurations where name = 'min server memory (MB)')
 
     UNION SELECT 19, 'Server IP Address'                    , (SELECT TOP 1 Local_Net_Address FROM sys.dm_exec_connections WHERE net_transport = 'TCP' GROUP BY Local_Net_Address ORDER BY COUNT(*) DESC)
     UNION SELECT 20, 'Port Number'                          , (SELECT TOP 1 local_tcp_port FROM sys.dm_exec_connections WHERE net_transport = 'TCP' GROUP BY local_tcp_port ORDER BY COUNT(*) DESC)
