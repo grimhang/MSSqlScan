@@ -6,6 +6,7 @@
 2021-07-13     Ver2 sys.configuration에 order by name 추가
 2022-12-26     Ver2 데이터베이스 파일 크기 정확하게 수정
 2023-01-03     Ver3 빌드버전(ProductVersion), 2022 지원
+2023-08-09     Ver3 Cu버전 가져오기 추가
 -------------------------------------------------------------------------*/
 use master 
 go
@@ -103,41 +104,42 @@ FROM
     UNION SELECT 8, 'SQL Server Edition and Bit Level'      , CONVERT(varchar(30), SERVERPROPERTY('EDITION'))
     UNION SELECT 9, 'SQL Server Bit Level'                  , CASE WHEN CHARINDEX('64-bit', @@VERSION) > 0 THEN '64bit' else '32bit' end
     UNION SELECT 10, 'SQL Server Service Pack'              , CONVERT(varchar(30), SERVERPROPERTY('ProductLevel'))
-    UNION SELECT 11, 'ProductUpdateReference'              , CONVERT(varchar(30), SERVERPROPERTY('ProductUpdateReference'))
-    UNION SELECT 12, 'ProductVersion'              , CONVERT(varchar(30), SERVERPROPERTY('ProductVersion'))
+    UNION SELECT 11, 'CuLevel'                              , CONVERT(varchar(30), SERVERPROPERTY('ProductUpdateLevel'))
+    UNION SELECT 12, 'ProductUpdateReference'               , CONVERT(varchar(30), SERVERPROPERTY('ProductUpdateReference'))
+    UNION SELECT 13, 'ProductVersion'                       , CONVERT(varchar(30), SERVERPROPERTY('ProductVersion'))
 
     
-    UNION SELECT 13, 'Logical CPU Count'                    , (SELECT cpu_count FROM sys.dm_os_sys_info)
+    UNION SELECT 14, 'Logical CPU Count'                    , (SELECT cpu_count FROM sys.dm_os_sys_info)
 
-    UNION SELECT 14, 'OS Memory'                            , (select total_physical_memory_kb / 1024       from sys.dm_os_sys_memory)
-    UNION SELECT 15, 'OS Available Memory'                  , (select available_physical_memory_kb / 1024   from sys.dm_os_sys_memory)
-    UNION SELECT 16, 'OS Memory Status'                     , (select system_memory_state_desc from sys.dm_os_sys_memory)
-    UNION SELECT 17, 'Max Server Memory(Megabytes)'         , (select CONVERT(varchar(20), [value_in_use]) from  master.sys.configurations where name = 'max server memory (MB)')
-    UNION SELECT 18, 'Min Server Memory(Megabytes)'         , (select CONVERT(varchar(20), [value_in_use]) from  master.sys.configurations where name = 'min server memory (MB)')
-
-    UNION SELECT 19, 'Server IP Address'                    , (SELECT TOP 1 Local_Net_Address FROM sys.dm_exec_connections WHERE net_transport = 'TCP' GROUP BY Local_Net_Address ORDER BY COUNT(*) DESC)
-    UNION SELECT 20, 'Port Number'                          , (SELECT TOP 1 local_tcp_port FROM sys.dm_exec_connections WHERE net_transport = 'TCP' GROUP BY local_tcp_port ORDER BY COUNT(*) DESC)
-    UNION SELECT 21, 'Domain Name'                          , DEFAULT_DOMAIN()
-    UNION SELECT 22, 'Service Account name'                 , @AccountName
-    UNION SELECT 23, 'Node1 Name'                           , @NodeName1
-    UNION SELECT 24, 'Node2 Name'                           , @NodeName2
-    UNION SELECT 25, 'Security Mode'                        , CASE WHEN CONVERT(int, SERVERPROPERTY('ISIntegratedSecurityOnly')) = 1 THEN 'Windows Authentication Security Mode'
+    UNION SELECT 15, 'OS Memory'                            , (select total_physical_memory_kb / 1024       from sys.dm_os_sys_memory)
+    UNION SELECT 16, 'OS Available Memory'                  , (select available_physical_memory_kb / 1024   from sys.dm_os_sys_memory)
+    UNION SELECT 17, 'OS Memory Status'                     , (select system_memory_state_desc from sys.dm_os_sys_memory)
+    UNION SELECT 18, 'Max Server Memory(Megabytes)'         , (select CONVERT(varchar(20), [value_in_use]) from  master.sys.configurations where name = 'max server memory (MB)')
+    UNION SELECT 19, 'Min Server Memory(Megabytes)'         , (select CONVERT(varchar(20), [value_in_use]) from  master.sys.configurations where name = 'min server memory (MB)')
+	
+    UNION SELECT 20, 'Server IP Address'                    , (SELECT TOP 1 Local_Net_Address FROM sys.dm_exec_connections WHERE net_transport = 'TCP' GROUP BY Local_Net_Address ORDER BY COUNT(*) DESC)
+    UNION SELECT 21, 'Port Number'                          , (SELECT TOP 1 local_tcp_port FROM sys.dm_exec_connections WHERE net_transport = 'TCP' GROUP BY local_tcp_port ORDER BY COUNT(*) DESC)
+    UNION SELECT 22, 'Domain Name'                          , DEFAULT_DOMAIN()
+    UNION SELECT 23, 'Service Account name'                 , @AccountName
+    UNION SELECT 24, 'Node1 Name'                           , @NodeName1
+    UNION SELECT 25, 'Node2 Name'                           , @NodeName2
+    UNION SELECT 26, 'Security Mode'                        , CASE WHEN CONVERT(int, SERVERPROPERTY('ISIntegratedSecurityOnly')) = 1 THEN 'Windows Authentication Security Mode'
                                                                    ELSE 'SQL Server Authentication Security Mode'
                                                               END
-    UNION SELECT 26, 'Audit Level'                          , CASE 
+    UNION SELECT 27, 'Audit Level'                          , CASE 
                                                                 WHEN @AuditLevel = 0    THEN 'None'
                                                                 WHEN @AuditLevel = 1    THEN 'Successful logins only'
                                                                 WHEN @AuditLevel = 2    THEN 'Failed logins only'
                                                                 WHEN @AuditLevel = 3    THEN 'Both successful and failed logins'
                                                                 ELSE 'Unknown'
                                                               END
-    UNION SELECT 27, 'User Mode'                            , CASE WHEN CONVERT(int, SERVERPROPERTY('ISSingleUser')) = 1 THEN 'Single User' ELSE 'Multi User' END
-    UNION SELECT 28, 'SQL Server Collation Type'            , CONVERT(varchar(30), SERVERPROPERTY('COLLATION'))
-    UNION SELECT 29, 'SQL Server Engine Location'           , REPLACE(SUBSTRING(@ImagePath, 2, CHARINDEX('"',  @ImagePath, 2) - 2), 'sqlservr.exe', '')
-    UNION SELECT 30, 'SQL Server Errorlog Location'         , REPLACE(CAST(SERVERPROPERTY('ErrorLogFileName') AS VARCHAR(500)), 'ERRORLOG','')
-    UNION SELECT 31, 'SQL Server Default Trace Location'    , REPLACE(CONVERT(VARCHAR(100), SERVERPROPERTY('ErrorLogFileName')), '\ERRORLOG','\log.trc')
-    UNION SELECT 32, 'Number of Link Servers'               , (SELECT COUNT(*) FROM sys.servers WHERE is_linked ='1')
-    UNION SELECT 33, 'SQL Server Engine Start Time'         , (SELECT sqlserver_start_time FROM sys.dm_os_sys_info)
+    UNION SELECT 28, 'User Mode'                            , CASE WHEN CONVERT(int, SERVERPROPERTY('ISSingleUser')) = 1 THEN 'Single User' ELSE 'Multi User' END
+    UNION SELECT 29, 'SQL Server Collation Type'            , CONVERT(varchar(30), SERVERPROPERTY('COLLATION'))
+    UNION SELECT 30, 'SQL Server Engine Location'           , REPLACE(SUBSTRING(@ImagePath, 2, CHARINDEX('"',  @ImagePath, 2) - 2), 'sqlservr.exe', '')
+    UNION SELECT 31, 'SQL Server Errorlog Location'         , REPLACE(CAST(SERVERPROPERTY('ErrorLogFileName') AS VARCHAR(500)), 'ERRORLOG','')
+    UNION SELECT 32, 'SQL Server Default Trace Location'    , REPLACE(CONVERT(VARCHAR(100), SERVERPROPERTY('ErrorLogFileName')), '\ERRORLOG','\log.trc')
+    UNION SELECT 33, 'Number of Link Servers'               , (SELECT COUNT(*) FROM sys.servers WHERE is_linked ='1')
+    UNION SELECT 34, 'SQL Server Engine Start Time'         , (SELECT sqlserver_start_time FROM sys.dm_os_sys_info)
 ) temp
 ORDER BY ValSeq
 ------------------------------------------------------------------------
